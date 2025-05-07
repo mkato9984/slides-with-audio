@@ -198,123 +198,271 @@
             background-color: #8e44ad;
         }
         
+        .presenter-mode-btn.active {
+            background-color: #8e44ad;
+        }
+        
         /* ノートのスタイル */
         .slide-notes {
             display: none;
         }
+        
+        /* プレゼンターモードのレイアウト */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            transition: all 0.3s ease;
+        }
+        
+        .main-container.presenter-mode {
+            flex-direction: row;
+        }
+        
+        .presenter-panel {
+            display: none;
+            width: 30%;
+            background-color: #f9f9f9;
+            border-left: 1px solid #ddd;
+            padding: 20px;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        .main-container.presenter-mode .slide-container {
+            width: 70%;
+        }
+        
+        .main-container.presenter-mode .presenter-panel {
+            display: flex;
+        }
+        
+        .presenter-section {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: white;
+        }
+        
+        .presenter-section h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 16px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        
+        .next-slide-preview {
+            max-width: 100%;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .presenter-notes-editor {
+            width: 100%;
+            min-height: 150px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
+        .presenter-timer {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #2c3e50;
+        }
+        
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        /* レスポンシブ対応 */
+        @media (max-width: 1024px) {
+            .main-container.presenter-mode {
+                flex-direction: column;
+            }
+            
+            .main-container.presenter-mode .slide-container,
+            .main-container.presenter-mode .presenter-panel {
+                width: 100%;
+            }
+            
+            .presenter-panel {
+                height: 50vh;
+                overflow-y: auto;
+            }
+        }
+
+        /* 通知メッセージ */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(44, 62, 80, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <div class="progress-container">
-        <div class="progress-bar" id="progress-bar"></div>
-    </div>
+    <div class="notification" id="notification">通知メッセージ</div>
     
-    <div class="slide-container">
-        <!-- スライド 1 -->
-        <div class="slide" id="slide-1">
-            <h2 class="slide-title">①導入</h2>
-            <div class="slide-content">
-                <img src="images/slide_1.png" alt="スライド1" class="slide-image">
-                <div class="audio-player" id="audio-player-1">
-                    <audio id="audio-1" preload="none">
-                        <source src="audio/audio_1.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
+    <div class="main-container" id="main-container">
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <div class="slide-container">
+            <!-- スライド 1 -->
+            <div class="slide" id="slide-1">
+                <h2 class="slide-title">①導入</h2>
+                <div class="slide-content">
+                    <img src="images/slide_1.png" alt="スライド1" class="slide-image">
+                    <div class="audio-player" id="audio-player-1">
+                        <audio id="audio-1" preload="none">
+                            <source src="audio/audio_1.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-1">
+                    このスライドでは、Salesforce導入の背景と目的について説明します。
+                    顧客管理の重要性と現状の課題を簡単に紹介しましょう。
                 </div>
             </div>
-            <div class="slide-notes" id="notes-1">
-                このスライドでは、Salesforce導入の背景と目的について説明します。
-                顧客管理の重要性と現状の課題を簡単に紹介しましょう。
+            
+            <!-- スライド 2 -->
+            <div class="slide" id="slide-2">
+                <h2 class="slide-title">②現状課題</h2>
+                <div class="slide-content">
+                    <img src="images/slide_2.png" alt="スライド2" class="slide-image">
+                    <div class="audio-player" id="audio-player-2">
+                        <audio id="audio-2" preload="none">
+                            <source src="audio/audio_2.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-2">
+                    現状の顧客管理における課題点を詳細に説明します。
+                    特に、データの分散、情報共有の難しさ、レポート作成の手間などを強調しましょう。
+                </div>
+            </div>
+            
+            <!-- スライド 3 -->
+            <div class="slide" id="slide-3">
+                <h2 class="slide-title">③Salesforce導入コンセプト</h2>
+                <div class="slide-content">
+                    <img src="images/slide_3.png" alt="スライド3" class="slide-image">
+                    <div class="audio-player" id="audio-player-3">
+                        <audio id="audio-3" preload="none">
+                            <source src="audio/audio_3.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-3">
+                    Salesforceの導入コンセプトについて説明します。
+                    顧客中心のビジネスプロセス実現とデータ統合の効果について触れましょう。
+                </div>
+            </div>
+            
+            <!-- スライド 4 -->
+            <div class="slide" id="slide-4">
+                <h2 class="slide-title">④重複チェック</h2>
+                <div class="slide-content">
+                    <img src="images/slide_4.png" alt="スライド4" class="slide-image">
+                    <div class="audio-player" id="audio-player-4">
+                        <audio id="audio-4" preload="none">
+                            <source src="audio/audio_4.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-4">
+                    Salesforceの重複チェック機能について詳しく説明します。
+                    データ品質向上のメリットと、実際の運用例を紹介しましょう。
+                </div>
+            </div>
+            
+            <!-- スライド 5 -->
+            <div class="slide" id="slide-5">
+                <h2 class="slide-title">⑤レポート</h2>
+                <div class="slide-content">
+                    <img src="images/slide_5.png" alt="スライド5" class="slide-image">
+                    <div class="audio-player" id="audio-player-5">
+                        <audio id="audio-5" preload="none">
+                            <source src="audio/audio_5.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-5">
+                    Salesforceのレポート機能とダッシュボード機能について説明します。
+                    データ分析の容易さとリアルタイム性について強調しましょう。
+                </div>
+            </div>
+            
+            <!-- スライド 6 -->
+            <div class="slide" id="slide-6">
+                <h2 class="slide-title">⑥まとめと未来像</h2>
+                <div class="slide-content">
+                    <img src="images/slide_6.png" alt="スライド6" class="slide-image">
+                    <div class="audio-player" id="audio-player-6">
+                        <audio id="audio-6" preload="none">
+                            <source src="audio/audio_6.wav" type="audio/wav">
+                            お使いのブラウザは音声再生をサポートしていません。
+                        </audio>
+                    </div>
+                </div>
+                <div class="slide-notes" id="notes-6">
+                    Salesforce導入の効果のまとめと将来展望について説明します。
+                    質疑応答の時間を取り、導入後のサポート体制についても触れましょう。
+                </div>
             </div>
         </div>
         
-        <!-- スライド 2 -->
-        <div class="slide" id="slide-2">
-            <h2 class="slide-title">②現状課題</h2>
-            <div class="slide-content">
-                <img src="images/slide_2.png" alt="スライド2" class="slide-image">
-                <div class="audio-player" id="audio-player-2">
-                    <audio id="audio-2" preload="none">
-                        <source src="audio/audio_2.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
+        <!-- プレゼンターパネル（右側） -->
+        <div class="presenter-panel" id="presenter-panel">
+            <div class="presenter-section">
+                <div class="presenter-timer" id="presenter-timer">00:00:00</div>
+                <div class="timer-controls">
+                    <button id="timer-start-btn" class="btn">タイマー開始</button>
+                    <button id="timer-reset-btn" class="btn">リセット</button>
                 </div>
             </div>
-            <div class="slide-notes" id="notes-2">
-                現状の顧客管理における課題点を詳細に説明します。
-                特に、データの分散、情報共有の難しさ、レポート作成の手間などを強調しましょう。
-            </div>
-        </div>
-        
-        <!-- スライド 3 -->
-        <div class="slide" id="slide-3">
-            <h2 class="slide-title">③Salesforce導入コンセプト</h2>
-            <div class="slide-content">
-                <img src="images/slide_3.png" alt="スライド3" class="slide-image">
-                <div class="audio-player" id="audio-player-3">
-                    <audio id="audio-3" preload="none">
-                        <source src="audio/audio_3.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
+            
+            <div class="presenter-section">
+                <h3>次のスライド</h3>
+                <div id="next-slide-preview-container">
+                    <!-- 次のスライドのプレビューがここに表示される -->
                 </div>
             </div>
-            <div class="slide-notes" id="notes-3">
-                Salesforceの導入コンセプトについて説明します。
-                顧客中心のビジネスプロセス実現とデータ統合の効果について触れましょう。
-            </div>
-        </div>
-        
-        <!-- スライド 4 -->
-        <div class="slide" id="slide-4">
-            <h2 class="slide-title">④重複チェック</h2>
-            <div class="slide-content">
-                <img src="images/slide_4.png" alt="スライド4" class="slide-image">
-                <div class="audio-player" id="audio-player-4">
-                    <audio id="audio-4" preload="none">
-                        <source src="audio/audio_4.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
-                </div>
-            </div>
-            <div class="slide-notes" id="notes-4">
-                Salesforceの重複チェック機能について詳しく説明します。
-                データ品質向上のメリットと、実際の運用例を紹介しましょう。
-            </div>
-        </div>
-        
-        <!-- スライド 5 -->
-        <div class="slide" id="slide-5">
-            <h2 class="slide-title">⑤レポート</h2>
-            <div class="slide-content">
-                <img src="images/slide_5.png" alt="スライド5" class="slide-image">
-                <div class="audio-player" id="audio-player-5">
-                    <audio id="audio-5" preload="none">
-                        <source src="audio/audio_5.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
-                </div>
-            </div>
-            <div class="slide-notes" id="notes-5">
-                Salesforceのレポート機能とダッシュボード機能について説明します。
-                データ分析の容易さとリアルタイム性について強調しましょう。
-            </div>
-        </div>
-        
-        <!-- スライド 6 -->
-        <div class="slide" id="slide-6">
-            <h2 class="slide-title">⑥まとめと未来像</h2>
-            <div class="slide-content">
-                <img src="images/slide_6.png" alt="スライド6" class="slide-image">
-                <div class="audio-player" id="audio-player-6">
-                    <audio id="audio-6" preload="none">
-                        <source src="audio/audio_6.wav" type="audio/wav">
-                        お使いのブラウザは音声再生をサポートしていません。
-                    </audio>
-                </div>
-            </div>
-            <div class="slide-notes" id="notes-6">
-                Salesforce導入の効果のまとめと将来展望について説明します。
-                質疑応答の時間を取り、導入後のサポート体制についても触れましょう。
+            
+            <div class="presenter-section">
+                <h3>発表ノート</h3>
+                <div id="current-notes-display"></div>
+                <textarea id="notes-editor" class="presenter-notes-editor" placeholder="ノートを入力..."></textarea>
             </div>
         </div>
     </div>
@@ -325,6 +473,7 @@
         <button id="next-btn" class="btn">次へ</button>
         <button id="audio-btn" class="btn">音声再生</button>
         <button id="autoplay-btn" class="btn">自動再生</button>
+        <button id="presenter-btn" class="btn presenter-mode-btn">プレゼンター表示</button>
     </div>
 
     <script>
@@ -335,6 +484,9 @@
         let autoplayInterval = null;
         let audioPlaying = false;
         let slideNotes = {};
+        let presenterModeActive = false;
+        let timerInterval = null;
+        let timerStartTime = null;
         
         // DOM要素
         const slides = document.querySelectorAll('.slide');
@@ -344,6 +496,16 @@
         const slideCounter = document.getElementById('slide-counter');
         const autoplayBtn = document.getElementById('autoplay-btn');
         const progressBar = document.getElementById('progress-bar');
+        const presenterBtn = document.getElementById('presenter-btn');
+        const mainContainer = document.getElementById('main-container');
+        const presenterPanel = document.getElementById('presenter-panel');
+        const nextSlidePreviewContainer = document.getElementById('next-slide-preview-container');
+        const currentNotesDisplay = document.getElementById('current-notes-display');
+        const notesEditor = document.getElementById('notes-editor');
+        const presenterTimer = document.getElementById('presenter-timer');
+        const timerStartBtn = document.getElementById('timer-start-btn');
+        const timerResetBtn = document.getElementById('timer-reset-btn');
+        const notification = document.getElementById('notification');
         
         // 初期化
         window.addEventListener('DOMContentLoaded', () => {
@@ -351,6 +513,19 @@
             updateProgressBar();
             setupAudioControls();
             initNotes();
+            loadNotesFromLocalStorage();
+            
+            // プレゼンターモードボタンのイベントリスナー
+            presenterBtn.addEventListener('click', togglePresenterMode);
+            
+            // ノートエディターのイベントリスナー
+            notesEditor.addEventListener('input', () => {
+                saveCurrentNote();
+            });
+            
+            // タイマーコントロールのイベントリスナー
+            timerStartBtn.addEventListener('click', toggleTimer);
+            timerResetBtn.addEventListener('click', resetTimer);
         });
         
         // スライドノートの初期化
@@ -363,6 +538,154 @@
                     slideNotes[i] = "";
                 }
             }
+        }
+        
+        // ローカルストレージからノートを読み込む
+        function loadNotesFromLocalStorage() {
+            try {
+                const savedNotes = localStorage.getItem('slideNotes');
+                if (savedNotes) {
+                    const parsedNotes = JSON.parse(savedNotes);
+                    
+                    // 既存のノートと統合
+                    for (const slideNum in parsedNotes) {
+                        if (slideNum >= 1 && slideNum <= totalSlides) {
+                            slideNotes[slideNum] = parsedNotes[slideNum];
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('ノートの読み込みに失敗しました:', error);
+            }
+        }
+        
+        // 現在のノートを保存
+        function saveCurrentNote() {
+            try {
+                const content = notesEditor.value;
+                slideNotes[currentSlide] = content;
+                
+                // ローカルストレージに保存
+                localStorage.setItem('slideNotes', JSON.stringify(slideNotes));
+                
+                // 表示を更新
+                updateCurrentNotesDisplay();
+            } catch (error) {
+                console.error('ノートの保存に失敗しました:', error);
+                showNotification('ノートの保存に失敗しました');
+            }
+        }
+        
+        // 現在のノートの表示を更新
+        function updateCurrentNotesDisplay() {
+            if (currentNotesDisplay) {
+                currentNotesDisplay.textContent = slideNotes[currentSlide] || '';
+            }
+        }
+        
+        // プレゼンターモードの切り替え
+        function togglePresenterMode() {
+            presenterModeActive = !presenterModeActive;
+            
+            if (presenterModeActive) {
+                mainContainer.classList.add('presenter-mode');
+                presenterBtn.classList.add('active');
+                presenterBtn.textContent = '通常表示に戻す';
+                updatePresenterView();
+                showNotification('プレゼンターモードに切り替えました');
+            } else {
+                mainContainer.classList.remove('presenter-mode');
+                presenterBtn.classList.remove('active');
+                presenterBtn.textContent = 'プレゼンター表示';
+                showNotification('通常モードに戻しました');
+            }
+        }
+        
+        // プレゼンタービューの更新
+        function updatePresenterView() {
+            // 次のスライドのプレビュー表示
+            updateNextSlidePreview();
+            
+            // 現在のスライドのノートを表示
+            updateCurrentNotesDisplay();
+            
+            // ノートエディタに現在のスライドのノートを設定
+            notesEditor.value = slideNotes[currentSlide] || '';
+        }
+        
+        // 次のスライドのプレビュー更新
+        function updateNextSlidePreview() {
+            if (!nextSlidePreviewContainer) return;
+            
+            if (currentSlide < totalSlides) {
+                const nextSlideNumber = currentSlide + 1;
+                nextSlidePreviewContainer.innerHTML = `
+                    <h4>スライド ${nextSlideNumber}: ${document.querySelector(`#slide-${nextSlideNumber} .slide-title`).textContent}</h4>
+                    <img src="images/slide_${nextSlideNumber}.png" alt="次のスライド" class="next-slide-preview">
+                `;
+            } else {
+                nextSlidePreviewContainer.innerHTML = `
+                    <p>最後のスライドです</p>
+                `;
+            }
+        }
+        
+        // タイマーの切り替え
+        function toggleTimer() {
+            if (timerInterval === null) {
+                // タイマー開始
+                timerStartTime = Date.now() - (timerStartTime ? Date.now() - timerStartTime : 0);
+                timerInterval = setInterval(updateTimer, 1000);
+                timerStartBtn.textContent = 'タイマー停止';
+                timerStartBtn.style.backgroundColor = '#e74c3c';
+            } else {
+                // タイマー停止
+                clearInterval(timerInterval);
+                timerInterval = null;
+                timerStartBtn.textContent = 'タイマー再開';
+                timerStartBtn.style.backgroundColor = '#3498db';
+            }
+        }
+        
+        // タイマーのリセット
+        function resetTimer() {
+            if (timerInterval !== null) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            timerStartTime = null;
+            presenterTimer.textContent = '00:00:00';
+            timerStartBtn.textContent = 'タイマー開始';
+            timerStartBtn.style.backgroundColor = '#3498db';
+        }
+        
+        // タイマーの更新
+        function updateTimer() {
+            if (!timerStartTime) return;
+            
+            const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            
+            presenterTimer.textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+        
+        // 数値を2桁で表示するためのパディング
+        function pad(num) {
+            return num.toString().padStart(2, '0');
+        }
+        
+        // 通知を表示
+        function showNotification(message) {
+            if (!notification) return;
+            
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
         }
         
         // イベントリスナー
@@ -386,6 +709,9 @@
                     break;
                 case 'a':
                     toggleAutoplay();
+                    break;
+                case 'p':
+                    togglePresenterMode();
                     break;
             }
         });
@@ -432,6 +758,7 @@
                     audioPlaying = true;
                 }).catch(error => {
                     console.error('音声の再生に失敗しました:', error);
+                    showNotification('音声の再生に失敗しました');
                 });
             } else {
                 // 音声を停止
@@ -489,6 +816,7 @@
                     audioPlaying = true;
                 }).catch(error => {
                     console.error('音声の自動再生に失敗しました:', error);
+                    showNotification('音声の自動再生に失敗しました');
                     
                     // 自動再生に失敗した場合は5秒後に次のスライドへ
                     if (autoplayMode && currentSlide < totalSlides) {
@@ -512,6 +840,11 @@
             
             // プログレスバーを更新
             updateProgressBar();
+            
+            // プレゼンターモードが有効な場合、ビューを更新
+            if (presenterModeActive) {
+                updatePresenterView();
+            }
         }
         
         // ボタンの状態を更新
@@ -542,6 +875,7 @@
                 // 自動再生を開始
                 autoplayBtn.textContent = '停止';
                 autoplayBtn.classList.add('active');
+                showNotification('自動再生を開始します');
                 
                 // 現在のスライドの音声を再生
                 playCurrentAudio();
@@ -560,6 +894,8 @@
                 // 自動再生を停止
                 autoplayBtn.textContent = '自動再生';
                 autoplayBtn.classList.remove('active');
+                showNotification('自動再生を停止しました');
+                
                 if (autoplayInterval) {
                     clearInterval(autoplayInterval);
                     autoplayInterval = null;
@@ -572,7 +908,10 @@
         
         // ウィンドウサイズ変更時の調整
         window.addEventListener('resize', () => {
-            // 必要に応じてレイアウト調整
+            // プレゼンターモードのレイアウト調整
+            if (presenterModeActive) {
+                updatePresenterView();
+            }
         });
     </script>
 </body>
