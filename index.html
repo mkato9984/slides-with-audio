@@ -69,7 +69,7 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
         
-        /* 音声プレーヤー (オプション) */
+        /* 音声プレーヤー */
         .audio-player {
             margin-top: 20px;
             display: flex;
@@ -77,6 +77,41 @@
             align-items: center;
             width: 80%;
             max-width: 500px;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+            align-items: center;
+        }
+        
+        .audio-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .audio-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .audio-btn.paused {
+            background-color: #2ecc71;
+        }
+        
+        .audio-btn.paused:hover {
+            background-color: #27ae60;
         }
         
         /* コントロールパネル */
@@ -166,7 +201,10 @@
             <div class="slide-content">
                 <img src="images/slide_1.png" alt="スライド1" class="slide-image">
                 <div class="audio-player" id="audio-player-1">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-1" preload="none">
+                        <source src="audio/audio_1.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -177,7 +215,10 @@
             <div class="slide-content">
                 <img src="images/slide_2.png" alt="スライド2" class="slide-image">
                 <div class="audio-player" id="audio-player-2">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-2" preload="none">
+                        <source src="audio/audio_2.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -188,7 +229,10 @@
             <div class="slide-content">
                 <img src="images/slide_3.png" alt="スライド3" class="slide-image">
                 <div class="audio-player" id="audio-player-3">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-3" preload="none">
+                        <source src="audio/audio_3.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -199,7 +243,10 @@
             <div class="slide-content">
                 <img src="images/slide_4.png" alt="スライド4" class="slide-image">
                 <div class="audio-player" id="audio-player-4">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-4" preload="none">
+                        <source src="audio/audio_4.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -210,7 +257,10 @@
             <div class="slide-content">
                 <img src="images/slide_5.png" alt="スライド5" class="slide-image">
                 <div class="audio-player" id="audio-player-5">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-5" preload="none">
+                        <source src="audio/audio_5.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -221,7 +271,10 @@
             <div class="slide-content">
                 <img src="images/slide_6.png" alt="スライド6" class="slide-image">
                 <div class="audio-player" id="audio-player-6">
-                    <!-- 音声プレーヤーはオプション -->
+                    <audio id="audio-6" preload="none">
+                        <source src="audio/audio_6.wav" type="audio/wav">
+                        お使いのブラウザは音声再生をサポートしていません。
+                    </audio>
                 </div>
             </div>
         </div>
@@ -231,6 +284,7 @@
         <button id="prev-btn" class="btn" disabled>前へ</button>
         <span id="slide-counter" class="slide-counter">1 / 6</span>
         <button id="next-btn" class="btn">次へ</button>
+        <button id="audio-btn" class="btn">音声再生</button>
         <button id="autoplay-btn" class="btn">自動再生</button>
     </div>
 
@@ -240,11 +294,13 @@
         let currentSlide = 1;
         let autoplayMode = false;
         let autoplayInterval = null;
+        let audioPlaying = false;
         
         // DOM要素
         const slides = document.querySelectorAll('.slide');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
+        const audioBtn = document.getElementById('audio-btn');
         const slideCounter = document.getElementById('slide-counter');
         const autoplayBtn = document.getElementById('autoplay-btn');
         const progressBar = document.getElementById('progress-bar');
@@ -253,11 +309,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             showSlide(currentSlide);
             updateProgressBar();
+            setupAudioControls();
         });
         
         // イベントリスナー
         prevBtn.addEventListener('click', showPreviousSlide);
         nextBtn.addEventListener('click', showNextSlide);
+        audioBtn.addEventListener('click', toggleAudio);
         autoplayBtn.addEventListener('click', toggleAutoplay);
         
         // キーボードショートカット
@@ -267,8 +325,11 @@
                     showPreviousSlide();
                     break;
                 case 'ArrowRight':
-                case ' ':
                     showNextSlide();
+                    break;
+                case ' ':
+                    toggleAudio();
+                    e.preventDefault(); // スペースキーのスクロールを防止
                     break;
                 case 'a':
                     toggleAutoplay();
@@ -276,20 +337,111 @@
             }
         });
         
+        // 音声コントロールの設定
+        function setupAudioControls() {
+            // すべてのオーディオ要素に対してエンドイベントリスナーを追加
+            for (let i = 1; i <= totalSlides; i++) {
+                const audio = document.getElementById(`audio-${i}`);
+                if (audio) {
+                    audio.addEventListener('ended', () => {
+                        audioBtn.textContent = '音声再生';
+                        audioPlaying = false;
+                        
+                        // 自動再生モードの場合、音声終了後に次のスライドへ
+                        if (autoplayMode && currentSlide < totalSlides) {
+                            setTimeout(() => showNextSlide(), 1000);
+                        }
+                    });
+                }
+            }
+        }
+        
+        // 音声の再生/停止
+        function toggleAudio() {
+            const audio = document.getElementById(`audio-${currentSlide}`);
+            if (!audio) return;
+            
+            if (audio.paused) {
+                // 他のすべての音声を停止
+                for (let i = 1; i <= totalSlides; i++) {
+                    if (i !== currentSlide) {
+                        const otherAudio = document.getElementById(`audio-${i}`);
+                        if (otherAudio) {
+                            otherAudio.pause();
+                            otherAudio.currentTime = 0;
+                        }
+                    }
+                }
+                
+                // 現在のスライドの音声を再生
+                audio.play().then(() => {
+                    audioBtn.textContent = '音声停止';
+                    audioPlaying = true;
+                }).catch(error => {
+                    console.error('音声の再生に失敗しました:', error);
+                });
+            } else {
+                // 音声を停止
+                audio.pause();
+                audio.currentTime = 0;
+                audioBtn.textContent = '音声再生';
+                audioPlaying = false;
+            }
+        }
+        
         // 前のスライドを表示
         function showPreviousSlide() {
             if (currentSlide > 1) {
+                stopCurrentAudio();
                 showSlide(currentSlide - 1);
+                
+                if (autoplayMode) {
+                    playCurrentAudio();
+                }
             }
         }
         
         // 次のスライドを表示
         function showNextSlide() {
             if (currentSlide < totalSlides) {
+                stopCurrentAudio();
                 showSlide(currentSlide + 1);
+                
+                if (autoplayMode) {
+                    playCurrentAudio();
+                }
             } else if (autoplayMode) {
                 // 最終スライドで自動再生中の場合は自動再生を停止
                 toggleAutoplay();
+            }
+        }
+        
+        // 現在の音声を停止
+        function stopCurrentAudio() {
+            const audio = document.getElementById(`audio-${currentSlide}`);
+            if (audio && !audio.paused) {
+                audio.pause();
+                audio.currentTime = 0;
+                audioBtn.textContent = '音声再生';
+                audioPlaying = false;
+            }
+        }
+        
+        // 現在の音声を再生
+        function playCurrentAudio() {
+            const audio = document.getElementById(`audio-${currentSlide}`);
+            if (audio) {
+                audio.play().then(() => {
+                    audioBtn.textContent = '音声停止';
+                    audioPlaying = true;
+                }).catch(error => {
+                    console.error('音声の自動再生に失敗しました:', error);
+                    
+                    // 自動再生に失敗した場合は5秒後に次のスライドへ
+                    if (autoplayMode && currentSlide < totalSlides) {
+                        setTimeout(() => showNextSlide(), 5000);
+                    }
+                });
             }
         }
         
@@ -314,6 +466,13 @@
             prevBtn.disabled = (currentSlide === 1);
             nextBtn.disabled = (currentSlide === totalSlides);
             slideCounter.textContent = `${currentSlide} / ${totalSlides}`;
+            audioBtn.textContent = '音声再生';
+            
+            // 現在のスライドの音声が再生中かチェック
+            const audio = document.getElementById(`audio-${currentSlide}`);
+            if (audio && !audio.paused) {
+                audioBtn.textContent = '音声停止';
+            }
         }
         
         // プログレスバーを更新
@@ -331,19 +490,30 @@
                 autoplayBtn.textContent = '停止';
                 autoplayBtn.classList.add('active');
                 
-                // 5秒ごとに次のスライドへ
-                autoplayInterval = setInterval(() => {
-                    if (currentSlide < totalSlides) {
-                        showNextSlide();
-                    } else {
-                        toggleAutoplay(); // 最終スライドで自動停止
-                    }
-                }, 5000);
+                // 現在のスライドの音声を再生
+                playCurrentAudio();
+                
+                // 音声がない場合や再生に失敗した場合のためのバックアップタイマー
+                if (audioPlaying === false) {
+                    autoplayInterval = setInterval(() => {
+                        if (currentSlide < totalSlides) {
+                            showNextSlide();
+                        } else {
+                            toggleAutoplay(); // 最終スライドで自動停止
+                        }
+                    }, 5000);
+                }
             } else {
                 // 自動再生を停止
                 autoplayBtn.textContent = '自動再生';
                 autoplayBtn.classList.remove('active');
-                clearInterval(autoplayInterval);
+                if (autoplayInterval) {
+                    clearInterval(autoplayInterval);
+                    autoplayInterval = null;
+                }
+                
+                // 音声を停止
+                stopCurrentAudio();
             }
         }
         
