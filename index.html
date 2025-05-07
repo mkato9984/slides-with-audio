@@ -474,6 +474,11 @@
             // 新しいウィンドウを開く
             presenterWindow = window.open('', 'presenter', 'width=1000,height=700');
             
+            if (!presenterWindow) {
+                alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+                return;
+            }
+            
             // HTMLコンテンツを作成
             const presenterContent = `
                 <!DOCTYPE html>
@@ -763,7 +768,7 @@
                         
                         // スライドプレビューの更新
                         function updateSlidePreview() {
-                            if (window.opener && !window.opener.closed) {
+                            try {
                                 // 現在のスライドのプレビュー
                                 currentSlideContainer.innerHTML = \`<img class="presenter-slide-preview" src="images/slide_\${presenterCurrentSlide}.png" alt="現在のスライド">\`;
                                 
@@ -773,41 +778,75 @@
                                 } else {
                                     nextSlideContainer.innerHTML = '<p>最後のスライドです</p>';
                                 }
+                            } catch (error) {
+                                console.error("プレビュー更新中にエラーが発生しました:", error);
                             }
                         }
                         
-                        // メインウィンドウが閉じられたら、このウィンドウも閉じる
-                        window.opener.addEventListener('unload', function() {
-                            window.close();
-                        });
+                        // メインウィンドウとの通信エラーを防ぐための処理
+                        try {
+                            window.addEventListener('unload', function() {
+                                if (window.opener && !window.opener.closed) {
+                                    window.opener.presenterWindow = null;
+                                }
+                            });
+                        } catch (error) {
+                            console.error("通信エラー:", error);
+                        }
                     </script>
                 </body>
                 </html>
             `;
             
-            // HTMLコンテンツをウィンドウに書き込む
-            presenterWindow.document.open();
-            presenterWindow.document.write(presenterContent);
-            presenterWindow.document.close();
-            
-            // メインウィンドウからプレゼンターウィンドウを更新するための関数
-            function updatePresenterWindow() {
-                if (presenterWindow && !presenterWindow.closed) {
-                    presenterWindow.updateFromMain(currentSlide, slideNotes[currentSlide] || '');
+            try {
+                // HTMLコンテンツをウィンドウに書き込む
+                presenterWindow.document.open();
+                presenterWindow.document.write(presenterContent);
+                presenterWindow.document.close();
+                
+                // メインウィンドウからプレゼンターウィンドウを更新するための関数
+                function updatePresenterWindow() {
+                    try {
+                        if (presenterWindow && !presenterWindow.closed && presenterWindow.updateFromMain) {
+                            presenterWindow.updateFromMain(currentSlide, slideNotes[currentSlide] || '');
+                        }
+                    } catch (error) {
+                        console.error("プレゼンターウィンドウの更新に失敗しました:", error);
+                    }
                 }
+                
+                // 安全にタイマーを使用してプレゼンターウィンドウの準備を待つ
+                setTimeout(() => {
+                    try {
+                        updatePresenterWindow();
+                    } catch (error) {
+                        console.error("初期化中にエラーが発生しました:", error);
+                    }
+                }, 500);
+                
+                // スライド変更時にプレゼンターウィンドウも更新するようにする
+                window.showSlide = function(slideNumber) {
+                    // 現在のスライドを非表示
+                    document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+                    
+                    // 新しいスライドを表示
+                    currentSlide = slideNumber;
+                    document.getElementById(`slide-${currentSlide}`).classList.add('active');
+                    
+                    // ボタンの状態を更新
+                    updateButtons();
+                    
+                    // プログレスバーを更新
+                    updateProgressBar();
+                    
+                    // プレゼンターウィンドウを更新
+                    updatePresenterWindow();
+                };
+            } catch (error) {
+                console.error("プレゼンターモードの初期化に失敗しました:", error);
+                alert("プレゼンターモードの初期化に失敗しました。ブラウザの設定を確認してください。");
+                presenterWindow = null;
             }
-            
-            // プレゼンターウィンドウが読み込まれた後に初期データを送信
-            presenterWindow.addEventListener('load', function() {
-                updatePresenterWindow();
-            });
-            
-            // スライド変更時にプレゼンターウィンドウも更新するようにする
-            const originalShowSlide = window.showSlide;
-            window.showSlide = function(slideNumber) {
-                originalShowSlide(slideNumber);
-                updatePresenterWindow();
-            };
         }
         
         // ノートの更新
