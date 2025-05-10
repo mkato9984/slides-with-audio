@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Slideshow</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
+        #slide-container { width: 80%; max-width: 800px; aspect-ratio: 16 / 9; border: 1px solid #ccc; margin-bottom: 20px; position: relative; background-color: white; overflow: hidden; }
+        #slide-container img { width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        #slide-container img.active { opacity: 1; z-index: 1; }
+        #controls { display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 800px; margin-bottom: 10px; }
+        #nav-controls { display: flex; align-items: center; margin-bottom: 10px; }
+        #media-controls { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        #current-audio-controls { display: flex; align-items: center; margin-bottom: 10px; width: 100%; max-width: 500px; }
+        #slideshow-autoplay-controls { display: flex; align-items: center; }
+        button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; margin: 0 5px; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #slide-counter { font-size: 18px; margin: 0 15px; }
+        #audio-seek-bar { flex-grow: 1; margin: 0 10px; height: 8px; -webkit-appearance: none; appearance: none; background: #ddd; outline: none; opacity: 0.7; transition: opacity .2s; cursor: pointer;}
+        #audio-seek-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 15px; height: 15px; background: #007bff; border-radius: 50%; cursor: pointer; }
+        #audio-seek-bar::-moz-range-thumb { width: 15px; height: 15px; background: #007bff; border-radius: 50%; cursor: pointer; border: none; }
+        #audio-time-display { font-size: 14px; min-width: 80px; text-align: center; }
+        audio { margin-top: 10px; } /* Styles for the audio player if it becomes visible */
+    </style>
+</head>
+<body>
+    <div id="slide-container">
+        <!-- Slides will be loaded here by JavaScript -->
+    </div>
+    <div id="controls">
+        <div id="nav-controls">
+            <button id="prev-btn">Previous</button>
+            <span id="slide-counter">1 / 11</span>
+            <button id="next-btn">Next</button>
+        </div>
+        <div id="media-controls">
+            <div id="current-audio-controls">
+                <input type="range" id="audio-seek-bar" value="0" min="0" step="0.1">
+                <span id="audio-time-display">0:00 / 0:00</span>
+            </div>
+            <div id="slideshow-autoplay-controls">
+                <button id="autoplay-toggle-btn">Autoplay</button>
+            </div>
+        </div>
+    </div>
+    <audio id="slide-audio" style="display: none;"></audio>
+
+    <script>
+        // --- Configuration ---
+        const slideImageBasePath = "salesforce_slides/salesforce_slides01/";
+        const slideImagePrefix = "slide";
+        const slideImageExtension = ".png";
+        const audioBasePath = "salesforce_slides/salesforce_slides01/audio/";
+        const audioFilePrefix = "salesforce_audio_";
+        const audioFileExtension = ".wav";
+        const totalSlides = 11;
+        const audioFileNumberOffset = -1; // e.g., slide 1 maps to audio_0, so offset is -1
+        const autoplayDelay = 3000; // milliseconds to wait after audio ends or if no audio
+        // --- End Configuration ---
+
+        const slideContainer = document.getElementById('slide-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        
+        const slideAudio = document.getElementById('slide-audio');
+        const audioSeekBar = document.getElementById('audio-seek-bar');
+        const audioTimeDisplay = document.getElementById('audio-time-display');
+
+        const autoplayToggleBtn = document.getElementById('autoplay-toggle-btn');
+
+        let currentSlide = 1;
+        let isAutoplaying = false;
+        let autoplayTimeoutId = null;
+
+        function formatTime(timeInSeconds) {
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        function generateSlidePath(slideNumber) {
+            const slidePadded = slideNumber.toString().padStart(2, '0');
+            return `${slideImageBasePath}${slideImagePrefix}${slidePadded}${slideImageExtension}`;
+        }
+
+        function generateAudioPath(slideNumber) {
+            if (slideNumber === 11) {
+                // Slide 11 should have no audio, return a path that will intentionally cause an error
+                return `${audioBasePath}no_audio_for_slide_11.wav`; 
+            }
+            const audioFileNumber = slideNumber + audioFileNumberOffset;
+            return `${audioBasePath}${audioFilePrefix}${audioFileNumber}${audioFileExtension}`;
+        }
+
+        function displaySlide(slideNumber) {
+            if (!slideAudio.paused) {
+                slideAudio.pause();
+            }
+            slideAudio.currentTime = 0;
+            audioSeekBar.value = 0;
+            audioSeekBar.disabled = true;
+            audioTimeDisplay.textContent = "0:00 / 0:00";
+
+            const existingActiveImage = slideContainer.querySelector('img.active');
+            if (existingActiveImage) {
+                existingActiveImage.classList.remove('active');
+            }
+
+            let newSlideImage = slideContainer.querySelector(`img[data-slide-number="${slideNumber}"]`);
+            if (!newSlideImage) {
+                newSlideImage = document.createElement('img');
+                newSlideImage.src = generateSlidePath(slideNumber);
+                newSlideImage.alt = `Slide ${slideNumber}`;
+                newSlideImage.dataset.slideNumber = slideNumber;
+                slideContainer.appendChild(newSlideImage);
+                newSlideImage.onload = () => {
+                    newSlideImage.classList.add('active');
+                };
+            } else {
+                 newSlideImage.classList.add('active');
+            }
+
+            slideCounter.textContent = `${slideNumber} / ${totalSlides}`;
+            prevBtn.disabled = slideNumber === 1;
+            nextBtn.disabled = slideNumber === totalSlides;
+
+            const audioPath = generateAudioPath(slideNumber);
+            slideAudio.src = audioPath;
+            slideAudio.load(); // This will trigger 'loadedmetadata' or 'error'
+        }
+
+        function scheduleNextSlideIfAutoplaying() {
+            if (!isAutoplaying) return;
+            clearTimeout(autoplayTimeoutId);
+            if (currentSlide < totalSlides) {
+                autoplayTimeoutId = setTimeout(() => {
+                    currentSlide++;
+                    displaySlide(currentSlide);
+                }, autoplayDelay);
+            } else {
+                stopAutoplay();
+            }
+        }
+
+        function startAutoplay() {
+            isAutoplaying = true;
+            autoplayToggleBtn.textContent = 'Pause';
+            console.log('Autoplay started');
+
+            if (slideAudio.src && !slideAudio.src.endsWith('null') && slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
+                slideAudio.play().catch(e => {
+                    console.error("Error trying to play audio in startAutoplay:", e);
+                    scheduleNextSlideIfAutoplaying();
+                });
+            } else if (slideAudio.error || !slideAudio.src || slideAudio.src.endsWith('null')) {
+                console.log("No audio or audio error for current slide in startAutoplay, scheduling next.");
+                scheduleNextSlideIfAutoplaying();
+            }
+        }
+
+        function stopAutoplay(pauseTheAudio = true) {
+            isAutoplaying = false;
+            clearTimeout(autoplayTimeoutId);
+            autoplayToggleBtn.textContent = 'Autoplay';
+            if (pauseTheAudio && !slideAudio.paused) {
+                slideAudio.pause();
+            }
+            console.log('Autoplay stopped');
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (isAutoplaying) {
+                clearTimeout(autoplayTimeoutId); // 自動再生がオンの場合、現在のタイマーのみクリア
+                // stopAutoplay(); // stopAutoplay は呼び出さない
+            }
+            if (currentSlide > 1) {
+                currentSlide--;
+                displaySlide(currentSlide); // 新しいスライドを表示し、loadedmetadataが自動再生を処理
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (isAutoplaying) {
+                clearTimeout(autoplayTimeoutId); // 自動再生がオンの場合、現在のタイマーのみクリア
+                // stopAutoplay(); // stopAutoplay は呼び出さない
+            }
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                displaySlide(currentSlide); // 新しいスライドを表示し、loadedmetadataが自動再生を処理
+            }
+        });
+
+        audioSeekBar.addEventListener('input', () => {
+            // if (isAutoplaying) { // コメントアウトして、シーク操作で自動再生が止まらないようにする
+            //     stopAutoplay(false);
+            // }
+            slideAudio.currentTime = audioSeekBar.value;
+        });
+
+        slideAudio.addEventListener('loadedmetadata', () => {
+            audioSeekBar.max = slideAudio.duration;
+            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+            audioSeekBar.disabled = false;
+            autoplayToggleBtn.disabled = false; // Enable autoplay button
+            if (isAutoplaying) {
+                slideAudio.play().catch(e => {
+                    console.error("Error playing audio after metadata loaded in autoplay:", e);
+                    scheduleNextSlideIfAutoplaying();
+                });
+            }
+        });
+
+        slideAudio.addEventListener('timeupdate', () => {
+            audioSeekBar.value = slideAudio.currentTime;
+            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+        });
+
+        slideAudio.addEventListener('ended', () => {
+            if (isAutoplaying) {
+                scheduleNextSlideIfAutoplaying();
+            }
+        });
+        
+        slideAudio.addEventListener('error', (e) => {
+            console.error(`Error loading audio: ${slideAudio.src}`, e);
+            audioSeekBar.disabled = true;
+            audioTimeDisplay.textContent = '0:00 / 0:00';
+            autoplayToggleBtn.disabled = false; // Enable autoplay button even on error
+            if (isAutoplaying) {
+                scheduleNextSlideIfAutoplaying();
+            }
+        });
+
+        autoplayToggleBtn.addEventListener('click', () => {
+            if (isAutoplaying) {
+                stopAutoplay();
+            } else {
+                startAutoplay();
+            }
+        });
+        
+        autoplayToggleBtn.disabled = true;
+        displaySlide(currentSlide);
+    </script>
+</body>
+</html>
