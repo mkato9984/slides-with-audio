@@ -6,15 +6,14 @@
     <title>Presenter View</title>
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background-color: #222; color: #eee; }
-        .presenter-container { display: flex; flex-grow: 1; padding: 20px; gap: 20px; }
-        .main-content { flex-grow: 3; display: flex; flex-direction: column; gap: 15px; }
-        .sidebar { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
-        .slide-view { border: 1px solid #444; background-color: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .current-slide-view { flex-grow: 1; }
-        .next-slide-view { height: 200px; /* Fixed height for next slide preview */ }
-        .slide-view img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .notes-view { border: 1px solid #444; background-color: #333; padding: 15px; flex-grow: 1; overflow-y: auto; }
-        .notes-view h3 { margin-top: 0; }
+        .presenter-container { display: flex; flex-grow: 1; padding: 20px; gap: 20px; max-width: 1600px; /* Added max-width */ margin: 0 auto; /* Center container */ width: 100%; box-sizing: border-box; }
+        .main-content { flex-grow: 2; flex-basis: 65%; /* Adjusted flex-basis */ display: flex; flex-direction: column; gap: 15px; min-width: 0; /* Prevent overflow */ }
+        .sidebar { flex-grow: 1; flex-basis: 35%; /* Adjusted flex-basis */ display: flex; flex-direction: column; gap: 15px; min-width: 0; /* Prevent overflow */ }
+        .slide-view { border: 1px solid #444; background-color: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; width: 100%; /* Ensure it takes full width of parent */ }
+        .current-slide-view { flex-grow: 1; aspect-ratio: 16 / 9; /* Maintain aspect ratio */ }
+        .next-slide-view { /* height: 200px; */ /* Removed fixed height, use aspect-ratio */ aspect-ratio: 16 / 9; /* Maintain aspect ratio */ max-height: 250px; /* Added max-height for next slide preview */ }
+        .slide-view img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; /* Ensure image behaves as block */ }
+        .notes-view { border: 1px solid #444; background-color: #333; padding: 15px; flex-grow: 1; overflow-y: auto; min-height: 100px; /* Added min-height */ }
         .controls-presenter { display: flex; justify-content: center; align-items: center; padding: 10px; background-color: #1a1a1a; border-top: 1px solid #444; gap: 10px;}
         .controls-presenter button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
         .controls-presenter button:disabled { background-color: #555; cursor: not-allowed; }
