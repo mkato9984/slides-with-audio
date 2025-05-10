@@ -5,36 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minimal Slideshow</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
-        #slide-container { width: 80%; max-width: 800px; aspect-ratio: 16 / 9; border: 1px solid #ccc; margin-bottom: 20px; position: relative; background-color: white; overflow: hidden; }
-        #slide-container img { width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        #slide-container img.active { opacity: 1; z-index: 1; }
-        #controls { display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 800px; margin-bottom: 10px; }
-        #nav-controls { display: flex; align-items: center; margin-bottom: 10px; }
-        #media-controls { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        #slideshow-autoplay-controls { display: flex; align-items: center; }
-        button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; margin: 0 5px; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        #slide-counter { font-size: 18px; margin: 0 15px; }
-        audio { margin-top: 10px; } /* Styles for the audio player if it becomes visible */
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start;
+            min-height: 100vh; 
+            margin: 0; 
+            background-color: #f0f0f0; 
+            padding: 10px; 
+            box-sizing: border-box;
+        }
+
+        #slideshow-area { 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: calc(100vh - 20px); /* bodyの上下paddingを引いた高さ */
+            box-sizing: border-box;
+        }
+
+        #slide-container { 
+            flex-grow: 1; /* 利用可能なスペースを埋める */
+            min-height: 0;  /* flexアイテムが縮小できるようにする */
+            width: auto;    /* aspect-ratio を活かすために auto にする */
+            max-width: 90vw; /* ただし、ビューポート幅の90%を超えない */
+            aspect-ratio: 16 / 9; 
+            border: 1px solid #ccc; 
+            background-color: white; 
+            display: grid; 
+            align-items: center; 
+            justify-items: center; 
+        }
+
+        #slide-container img { 
+            max-width: 100%; /* Added */
+            max-height: 100%; /* Added */
+            object-fit: contain; 
+            object-position: center center; 
+            grid-area: 1 / 1; /* Added for stacking in the same grid cell */
+            opacity: 0; 
+            transition: opacity 0.5s ease-in-out; 
+        }
+        #slide-container img.active { 
+            opacity: 1; 
+            z-index: 1; 
+        }
+        #controls { 
+            flex-shrink: 0; /* コントロール部分は縮まない */
+            width: 100%; /* 親の幅に合わせる */
+            max-width: 90vw; /* スライドコンテナの最大幅に合わせる */
+            display: flex; 
+            flex-direction: row; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-top: 10px; 
+            padding: 5px 0; 
+            box-sizing: border-box;
+        }
+        #nav-controls { 
+            display: flex; 
+            align-items: center; 
+        }
+        #media-controls { 
+            display: flex; 
+            align-items: center; 
+        }
+        #slideshow-autoplay-controls { 
+            display: flex; 
+            align-items: center; 
+        }
+        button { 
+            padding: 5px 10px; /* Reduced padding */
+            font-size: 12px; /* Reduced font size */
+            cursor: pointer; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 3px; /* Slightly reduced radius */
+            margin: 0 5px; 
+        }
+        button:disabled { 
+            background-color: #ccc; 
+            cursor: not-allowed; 
+        }
+        #slide-counter { 
+            font-size: 14px; /* Reduced font size */
+            margin: 0 10px; /* Adjusted margin */
+        }
+        audio { 
+            margin-top: 10px; 
+        }
     </style>
 </head>
 <body>
-    <div id="slide-container">
-        <!-- Slides will be loaded here by JavaScript -->
-    </div>
-    <div id="controls">
-        <div id="nav-controls">
-            <button id="prev-btn">Previous</button>
-            <span id="slide-counter">1 / 11</span>
-            <button id="next-btn">Next</button>
+    <div id="slideshow-area"> <!-- New parent container -->
+        <div id="slide-container">
+            <!-- Slides will be loaded here by JavaScript -->
         </div>
-        <div id="media-controls">
-            <div id="slideshow-autoplay-controls">
-                <button id="autoplay-toggle-btn">Autoplay</button>
+        <div id="controls">
+            <div id="nav-controls">
+                <button id="prev-btn">Previous</button>
+                <span id="slide-counter">1 / 11</span>
+                <button id="next-btn">Next</button>
+            </div>
+            <div id="media-controls">
+                <div id="slideshow-autoplay-controls">
+                    <button id="autoplay-toggle-btn">Autoplay</button>
+                </div>
             </div>
         </div>
-    </div>
+    </div> <!-- End of new parent container -->
     <audio id="slide-audio" style="display: none;"></audio>
 
     <script>
