@@ -12,15 +12,10 @@
         #controls { display: flex; flex-direction: column; align-items: center; width: 80%; max-width: 800px; margin-bottom: 10px; }
         #nav-controls { display: flex; align-items: center; margin-bottom: 10px; }
         #media-controls { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        #current-audio-controls { display: flex; align-items: center; margin-bottom: 10px; width: 100%; max-width: 500px; }
         #slideshow-autoplay-controls { display: flex; align-items: center; }
         button { padding: 10px 15px; font-size: 14px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; margin: 0 5px; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         #slide-counter { font-size: 18px; margin: 0 15px; }
-        #audio-seek-bar { flex-grow: 1; margin: 0 10px; height: 8px; -webkit-appearance: none; appearance: none; background: #ddd; outline: none; opacity: 0.7; transition: opacity .2s; cursor: pointer;}
-        #audio-seek-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 15px; height: 15px; background: #007bff; border-radius: 50%; cursor: pointer; }
-        #audio-seek-bar::-moz-range-thumb { width: 15px; height: 15px; background: #007bff; border-radius: 50%; cursor: pointer; border: none; }
-        #audio-time-display { font-size: 14px; min-width: 80px; text-align: center; }
         audio { margin-top: 10px; } /* Styles for the audio player if it becomes visible */
     </style>
 </head>
@@ -35,10 +30,6 @@
             <button id="next-btn">Next</button>
         </div>
         <div id="media-controls">
-            <div id="current-audio-controls">
-                <input type="range" id="audio-seek-bar" value="0" min="0" step="0.1">
-                <span id="audio-time-display">0:00 / 0:00</span>
-            </div>
             <div id="slideshow-autoplay-controls">
                 <button id="autoplay-toggle-btn">Autoplay</button>
             </div>
@@ -89,27 +80,12 @@
         const slideCounter = document.getElementById('slide-counter');
         
         const slideAudio = document.getElementById('slide-audio');
-        const audioSeekBar = document.getElementById('audio-seek-bar');
-        const audioTimeDisplay = document.getElementById('audio-time-display');
 
         const autoplayToggleBtn = document.getElementById('autoplay-toggle-btn');
 
         let currentSlide = 1;
         let isAutoplaying = false;
         let autoplayTimeoutId = null;
-
-        // --- Keyboard Shortcut State ---
-        let arrowLeftKeyDownTimer = null;
-        let arrowRightKeyDownTimer = null;
-        let arrowLeftLongPressOccurred = false;
-        let arrowRightLongPressOccurred = false;
-        let continuousSeekTimer = null; // Timer for continuous seeking
-
-        function formatTime(timeInSeconds) {
-            const minutes = Math.floor(timeInSeconds / 60);
-            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
-            return `${minutes}:${seconds}`;
-        }
 
         function generateSlidePath(slideNumber) {
             const slidePadded = slideNumber.toString().padStart(2, '0');
@@ -130,9 +106,6 @@
                 slideAudio.pause();
             }
             slideAudio.currentTime = 0;
-            audioSeekBar.value = 0;
-            audioSeekBar.disabled = true;
-            audioTimeDisplay.textContent = "0:00 / 0:00";
 
             const existingActiveImage = slideContainer.querySelector('img.active');
             if (existingActiveImage) {
@@ -161,14 +134,15 @@
             slideAudio.src = audioPath;
             slideAudio.load(); // This will trigger 'loadedmetadata' or 'error'
 
-            // --- Broadcast slide change ---
+            // --- Broadcast slide change (also includes audio info for presenter) ---
             channel.postMessage({
                 type: 'slideChange',
                 currentSlide: slideNumber,
                 nextSlide: slideNumber < totalSlides ? slideNumber + 1 : null,
                 totalSlides: totalSlides,
                 notes: speakerNotesData[slideNumber - 1] || "ノートはありません。",
-                isAutoplaying: isAutoplaying
+                isAutoplaying: isAutoplaying,
+                audioSrc: audioPath, // Send audio source for presenter to know duration
             });
             // --- End Broadcast slide change ---
         }
@@ -221,7 +195,6 @@
         prevBtn.addEventListener('click', () => {
             if (isAutoplaying) {
                 clearTimeout(autoplayTimeoutId); // 自動再生がオンの場合、現在のタイマーのみクリア
-                // stopAutoplay(); // stopAutoplay は呼び出さない
             }
             if (currentSlide > 1) {
                 currentSlide--;
@@ -232,7 +205,6 @@
         nextBtn.addEventListener('click', () => {
             if (isAutoplaying) {
                 clearTimeout(autoplayTimeoutId); // 自動再生がオンの場合、現在のタイマーのみクリア
-                // stopAutoplay(); // stopAutoplay は呼び出さない
             }
             if (currentSlide < totalSlides) {
                 currentSlide++;
@@ -240,17 +212,7 @@
             }
         });
 
-        audioSeekBar.addEventListener('input', () => {
-            // if (isAutoplaying) { // コメントアウトして、シーク操作で自動再生が止まらないようにする
-            //     stopAutoplay(false);
-            // }
-            slideAudio.currentTime = audioSeekBar.value;
-        });
-
         slideAudio.addEventListener('loadedmetadata', () => {
-            audioSeekBar.max = slideAudio.duration;
-            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
-            audioSeekBar.disabled = false;
             autoplayToggleBtn.disabled = false; // Enable autoplay button
             if (isAutoplaying) {
                 slideAudio.play().catch(e => {
@@ -258,11 +220,23 @@
                     scheduleNextSlideIfAutoplaying();
                 });
             }
+            // Inform presenter about audio duration
+            channel.postMessage({
+                type: 'audioMetadataLoaded',
+                duration: slideAudio.duration,
+                currentTime: slideAudio.currentTime,
+                audioSrc: slideAudio.src // include src to avoid race conditions if slide changed quickly
+            });
         });
 
         slideAudio.addEventListener('timeupdate', () => {
-            audioSeekBar.value = slideAudio.currentTime;
-            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+            // Send current time to presenter
+            channel.postMessage({
+                type: 'audioTimeUpdate',
+                currentTime: slideAudio.currentTime,
+                duration: slideAudio.duration, // Also send duration for safety
+                audioSrc: slideAudio.src // include src to avoid race conditions
+            });
         });
 
         slideAudio.addEventListener('ended', () => {
@@ -273,12 +247,14 @@
         
         slideAudio.addEventListener('error', (e) => {
             console.error(`Error loading audio: ${slideAudio.src}`, e);
-            audioSeekBar.disabled = true;
-            audioTimeDisplay.textContent = '0:00 / 0:00';
             autoplayToggleBtn.disabled = false; // Enable autoplay button even on error
             if (isAutoplaying) {
                 scheduleNextSlideIfAutoplaying();
             }
+            channel.postMessage({ // Inform presenter about the audio error
+                type: 'audioError',
+                audioSrc: slideAudio.src
+            });
         });
 
         autoplayToggleBtn.addEventListener('click', () => {
@@ -311,23 +287,40 @@
                 case 'requestInitialState':
                     // Send current state back to presenter
                     channel.postMessage({
-                        type: 'slideChange', // Use slideChange to populate everything
+                        type: 'slideChange',
                         currentSlide: currentSlide,
                         nextSlide: currentSlide < totalSlides ? currentSlide + 1 : null,
                         totalSlides: totalSlides,
                         notes: speakerNotesData[currentSlide - 1] || "ノートはありません。",
-                        isAutoplaying: isAutoplaying
+                        isAutoplaying: isAutoplaying,
+                        audioSrc: slideAudio.src, // send current audio src
                     });
+                    // Additionally, if audio is loaded, send its current state
+                    if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
+                        channel.postMessage({
+                            type: 'audioMetadataLoaded',
+                            duration: slideAudio.duration,
+                            currentTime: slideAudio.currentTime,
+                            audioSrc: slideAudio.src
+                        });
+                    } else if (slideAudio.error) {
+                         channel.postMessage({ type: 'audioError', audioSrc: slideAudio.src });
+                    }
+                    break;
+                case 'seekAudio':
+                    if (message.time != null && slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
+                        slideAudio.currentTime = message.time;
+                    }
                     break;
             }
         };
         // --- End BroadcastChannel Message Handler ---
 
-        // --- Keyboard Shortcuts ---
+        // --- Keyboard Shortcuts (Main View - Simplified) ---
         document.addEventListener('keydown', (event) => {
             if (event.key === ' ') {
-                event.preventDefault(); // Prevent default space bar action (e.g., scrolling)
-                autoplayToggleBtn.click(); // Simulate click on Autoplay/Pause button
+                event.preventDefault(); 
+                autoplayToggleBtn.click(); 
                 return;
             }
 
@@ -337,92 +330,11 @@
             }
 
             if (event.key === 'ArrowLeft') {
-                if (event.repeat) return; 
-
-                arrowLeftLongPressOccurred = false; 
-                clearTimeout(arrowLeftKeyDownTimer); 
-                clearInterval(continuousSeekTimer); // Clear any ongoing continuous seek
-
-                if (isAutoplaying) { 
-                    arrowLeftKeyDownTimer = setTimeout(() => {
-                        arrowLeftLongPressOccurred = true;
-                        arrowLeftKeyDownTimer = null; 
-                        
-                        // Initial seek
-                        if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
-                            console.log('Long press ArrowLeft: Initial seek backward');
-                            slideAudio.currentTime = Math.max(0, slideAudio.currentTime - seekInterval);
-                            audioSeekBar.value = slideAudio.currentTime; 
-                            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
-                        }
-
-                        // Start continuous seeking
-                        continuousSeekTimer = setInterval(() => {
-                            if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
-                                console.log('Continuous seek ArrowLeft: Seek backward');
-                                slideAudio.currentTime = Math.max(0, slideAudio.currentTime - seekInterval);
-                                audioSeekBar.value = slideAudio.currentTime;
-                                audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
-                            } else {
-                                clearInterval(continuousSeekTimer); // Stop if audio is not ready or paused
-                            }
-                        }, continuousSeekIntervalTime);
-                    }, longPressDuration);
-                }
-
+                if (event.repeat) return;
+                prevBtn.click();
             } else if (event.key === 'ArrowRight') {
                 if (event.repeat) return;
-
-                arrowRightLongPressOccurred = false;
-                clearTimeout(arrowRightKeyDownTimer);
-                clearInterval(continuousSeekTimer); // Clear any ongoing continuous seek
-
-                if (isAutoplaying) { 
-                    arrowRightKeyDownTimer = setTimeout(() => {
-                        arrowRightLongPressOccurred = true;
-                        arrowRightKeyDownTimer = null;
-
-                        // Initial seek
-                        if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
-                            console.log('Long press ArrowRight: Initial seek forward');
-                            slideAudio.currentTime = Math.min(slideAudio.duration, slideAudio.currentTime + seekInterval);
-                            audioSeekBar.value = slideAudio.currentTime;
-                            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
-                        }
-
-                        // Start continuous seeking
-                        continuousSeekTimer = setInterval(() => {
-                            if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
-                                console.log('Continuous seek ArrowRight: Seek forward');
-                                slideAudio.currentTime = Math.min(slideAudio.duration, slideAudio.currentTime + seekInterval);
-                                audioSeekBar.value = slideAudio.currentTime;
-                                audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
-                            } else {
-                                clearInterval(continuousSeekTimer); // Stop if audio is not ready or paused
-                            }
-                        }, continuousSeekIntervalTime);
-                    }, longPressDuration);
-                }
-            }
-        });
-
-        document.addEventListener('keyup', (event) => {
-            if (event.key === 'ArrowLeft') {
-                clearTimeout(arrowLeftKeyDownTimer);
-                clearInterval(continuousSeekTimer); 
-                if (!arrowLeftLongPressOccurred) {
-                    console.log('Short press ArrowLeft: Previous slide');
-                    prevBtn.click();
-                }
-                arrowLeftLongPressOccurred = false; 
-            } else if (event.key === 'ArrowRight') {
-                clearTimeout(arrowRightKeyDownTimer);
-                clearInterval(continuousSeekTimer);
-                if (!arrowRightLongPressOccurred) {
-                    console.log('Short press ArrowRight: Next slide');
-                    nextBtn.click();
-                }
-                arrowRightLongPressOccurred = false;
+                nextBtn.click();
             }
         });
     </script>

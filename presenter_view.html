@@ -14,6 +14,30 @@
         .next-slide-view { /* height: 200px; */ /* Removed fixed height, use aspect-ratio */ aspect-ratio: 16 / 9; /* Maintain aspect ratio */ max-height: 250px; /* Added max-height for next slide preview */ }
         .slide-view img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; /* Ensure image behaves as block */ }
         .notes-view { border: 1px solid #444; background-color: #333; padding: 15px; flex-grow: 1; overflow-y: auto; min-height: 100px; /* Added min-height */ }
+        
+        /* Added styles for audio controls in presenter view */
+        .audio-controls-presenter {
+            padding: 15px;
+            background-color: #333;
+            border: 1px solid #444;
+            margin-top: 15px; /* Add some space above */
+        }
+        .audio-controls-presenter h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        #audio-seek-bar-presenter {
+            width: 100%;
+            cursor: pointer;
+        }
+        #audio-time-display-presenter {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            color: #ccc;
+        }
+        /* End added styles */
+
         .controls-presenter { display: flex; justify-content: center; align-items: center; padding: 10px; background-color: #1a1a1a; border-top: 1px solid #444; gap: 10px;}
         .controls-presenter button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
         .controls-presenter button:disabled { background-color: #555; cursor: not-allowed; }
@@ -39,6 +63,15 @@
             <div id="next-slide-presenter" class="slide-view next-slide-view">
                 <img id="next-slide-img-presenter" src="" alt="Next Slide">
             </div>
+
+            <!-- Added Audio Controls Section -->
+            <div class="audio-controls-presenter">
+                <h3>Audio Controls</h3>
+                <input type="range" id="audio-seek-bar-presenter" value="0" disabled>
+                <div id="audio-time-display-presenter">0:00 / 0:00</div>
+            </div>
+            <!-- End Added Audio Controls Section -->
+
             <h2>Controls</h2>
             <div id="presenter-info" style="padding:15px; background-color: #333; border: 1px solid #444;">
                 <p>Status: <span id="autoplay-status-presenter">Paused</span></p>
@@ -70,10 +103,27 @@
         const autoplayStatusPresenter = document.getElementById('autoplay-status-presenter');
         const presenterTimerDisplay = document.getElementById('presenter-timer');
 
+        // Added DOM elements for audio controls
+        const audioSeekBarPresenter = document.getElementById('audio-seek-bar-presenter');
+        const audioTimeDisplayPresenter = document.getElementById('audio-time-display-presenter');
+        // End added DOM elements
+
         let totalSlidesPresenter = 0;
         let currentSlideNumberPresenter = 0;
         let timerInterval = null;
         let secondsElapsed = 0;
+
+        // --- Keyboard Shortcut State for Audio Seeking ---
+        const longPressDelay = 500; // ms for long press
+        const seekInterval = 200; // ms for continuous seek
+        const seekAmount = 5; // seconds to seek by
+        let arrowLeftKeyDownTimer = null;
+        let arrowRightKeyDownTimer = null;
+        let arrowLeftLongPressOccurred = false;
+        let arrowRightLongPressOccurred = false;
+        let continuousSeekTimer = null;
+        let currentAudioSrc = null; // To track which audio the controls are for
+        // --- End Keyboard Shortcut State ---
 
         // Placeholder for speaker notes - this would ideally be loaded dynamically
         const speakerNotesData = [
@@ -89,6 +139,17 @@
             "Slide 10: Conclusion. Summarize the main points.", // Slide 10
             "Slide 11: Q&A. Open the floor for questions."  // Slide 11
         ];
+
+        // Added formatTime function (similar to one from minimal_slides)
+        function formatTime(timeInSeconds) {
+            if (isNaN(timeInSeconds) || timeInSeconds === Infinity) {
+                return "0:00";
+            }
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+        // End added formatTime function
 
         function generateSlidePath(slideNumber) {
             if (slideNumber <= 0) return ""; // Or a placeholder image
@@ -131,7 +192,8 @@
             if (data.type === 'slideChange') {
                 currentSlideNumberPresenter = data.currentSlide;
                 totalSlidesPresenter = data.totalSlides;
-                
+                currentAudioSrc = data.audioSrc; // Store current audio source
+
                 currentSlideImgPresenter.src = generateSlidePath(data.currentSlide);
                 nextSlideImgPresenter.src = data.nextSlide ? generateSlidePath(data.nextSlide) : ""; // Handle no next slide
                 nextSlideImgPresenter.style.display = data.nextSlide ? 'block' : 'none';
@@ -144,6 +206,12 @@
                 
                 autoplayStatusPresenter.textContent = data.isAutoplaying ? 'Playing' : 'Paused';
                 autoplayToggleBtnPresenter.textContent = data.isAutoplaying ? 'Pause' : 'Autoplay';
+
+                // Reset audio controls for new slide, wait for metadata
+                audioSeekBarPresenter.value = 0;
+                audioSeekBarPresenter.max = 100; // Default max until metadata loaded
+                audioSeekBarPresenter.disabled = true;
+                audioTimeDisplayPresenter.textContent = "0:00 / 0:00";
 
                 // Reset timer on first slide, start otherwise
                 if (data.currentSlide === 1 && data.isInitialLoad) { // Assuming an isInitialLoad flag for first message
@@ -158,10 +226,36 @@
                 autoplayToggleBtnPresenter.textContent = data.isAutoplaying ? 'Pause' : 'Autoplay';
                 if (data.isAutoplaying && !timerInterval) { // Start timer if autoplay starts and timer isn't running
                     // This might need refinement: when should timer truly start/stop with autoplay?
-                    // For now, let's assume autoplay starting means presentation is active.
                     // startTimer(); 
                 } else if (!data.isAutoplaying && timerInterval) {
                     // stopTimer();
+                }
+            } else if (data.type === 'audioMetadataLoaded') {
+                // Ensure this metadata is for the current slide's audio
+                if (data.audioSrc === currentAudioSrc) {
+                    audioSeekBarPresenter.max = data.duration;
+                    audioSeekBarPresenter.value = data.currentTime;
+                    audioTimeDisplayPresenter.textContent = `${formatTime(data.currentTime)} / ${formatTime(data.duration)}`;
+                    audioSeekBarPresenter.disabled = false;
+                }
+            } else if (data.type === 'audioTimeUpdate') {
+                 // Ensure this time update is for the current slide's audio
+                if (data.audioSrc === currentAudioSrc) {
+                    if (!audioSeekBarPresenter.disabled) { // Only update if not disabled (e.g. by error)
+                        audioSeekBarPresenter.value = data.currentTime;
+                        // Update duration as well, in case it wasn't set or changed (though unlikely for static files)
+                        if (data.duration && audioSeekBarPresenter.max !== data.duration) {
+                             audioSeekBarPresenter.max = data.duration;
+                        }
+                        audioTimeDisplayPresenter.textContent = `${formatTime(data.currentTime)} / ${formatTime(data.duration || audioSeekBarPresenter.max)}`;
+                    }
+                }
+            } else if (data.type === 'audioError') {
+                if (data.audioSrc === currentAudioSrc) {
+                    console.warn('Presenter received audio error for:', data.audioSrc);
+                    audioSeekBarPresenter.disabled = true;
+                    audioSeekBarPresenter.value = 0;
+                    audioTimeDisplayPresenter.textContent = "Audio Error";
                 }
             }
         };
@@ -182,7 +276,24 @@
         window.addEventListener('load', () => {
             channel.postMessage({ type: 'requestInitialState' });
             startTimer(); // Start timer when presenter view loads
+            // Initialize audio controls to disabled state
+            audioSeekBarPresenter.disabled = true;
+            audioTimeDisplayPresenter.textContent = "0:00 / 0:00";
         });
+
+        // Added event listener for audio seek bar
+        audioSeekBarPresenter.addEventListener('input', () => {
+            if (!audioSeekBarPresenter.disabled) {
+                channel.postMessage({ 
+                    type: 'seekAudio', 
+                    time: parseFloat(audioSeekBarPresenter.value),
+                    audioSrc: currentAudioSrc // Send src to ensure main view seeks correct audio
+                });
+                // Optimistically update time display, main view will send `audioTimeUpdate` to confirm
+                audioTimeDisplayPresenter.textContent = `${formatTime(parseFloat(audioSeekBarPresenter.value))} / ${formatTime(parseFloat(audioSeekBarPresenter.max))}`;
+            }
+        });
+        // End added event listener
 
         // --- Keyboard Shortcuts for Presenter View ---
         document.addEventListener('keydown', (event) => {
@@ -204,20 +315,101 @@
                     autoplayToggleBtnPresenter.click(); // Simulate click on Autoplay/Pause button
                     break;
                 case 'ArrowLeft':
-                    // Check if the previous button is not disabled
-                    if (!prevBtnPresenter.disabled) {
-                        prevBtnPresenter.click(); // Simulate click on Previous button
+                    if (event.repeat) return; // Already handled by keydown for long press
+                    if (!arrowLeftLongPressOccurred) { // If long press didn't happen, it's a short press
+                        if (!prevBtnPresenter.disabled) {
+                            prevBtnPresenter.click();
+                        }
                     }
+                    arrowLeftLongPressOccurred = false; // Reset for next press
                     break;
                 case 'ArrowRight':
-                    // Check if the next button is not disabled
-                    if (!nextBtnPresenter.disabled) {
-                        nextBtnPresenter.click(); // Simulate click on Next button
+                    if (event.repeat) return; // Already handled by keydown for long press
+                    if (!arrowRightLongPressOccurred) { // If long press didn't happen, it's a short press
+                        if (!nextBtnPresenter.disabled) {
+                            nextBtnPresenter.click();
+                        }
                     }
+                    arrowRightLongPressOccurred = false; // Reset for next press
                     break;
             }
         });
-        // --- End Keyboard Shortcuts for Presenter View ---
+
+        // --- Added Keydown/Keyup for Long Press Audio Seeking ---
+        document.addEventListener('keydown', (event) => {
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
+            if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+            if (event.key === 'ArrowLeft') {
+                if (arrowLeftKeyDownTimer === null && !event.repeat && !audioSeekBarPresenter.disabled) { // Start timer only on first press and if audio is active
+                    arrowLeftLongPressOccurred = false;
+                    arrowLeftKeyDownTimer = setTimeout(() => {
+                        arrowLeftLongPressOccurred = true;
+                        console.log('Long press Left - Start Seeking Backwards');
+                        performSeek(-seekAmount); // Seek once immediately
+                        if (continuousSeekTimer) clearInterval(continuousSeekTimer); // Clear previous continuous seek
+                        continuousSeekTimer = setInterval(() => performSeek(-seekAmount), seekInterval);
+                    }, longPressDelay);
+                }
+            } else if (event.key === 'ArrowRight') {
+                if (arrowRightKeyDownTimer === null && !event.repeat && !audioSeekBarPresenter.disabled) { // Start timer only on first press and if audio is active
+                    arrowRightLongPressOccurred = false;
+                    arrowRightKeyDownTimer = setTimeout(() => {
+                        arrowRightLongPressOccurred = true;
+                        console.log('Long press Right - Start Seeking Forwards');
+                        performSeek(seekAmount); // Seek once immediately
+                        if (continuousSeekTimer) clearInterval(continuousSeekTimer); // Clear previous continuous seek
+                        continuousSeekTimer = setInterval(() => performSeek(seekAmount), seekInterval);
+                    }, longPressDelay);
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.key === 'ArrowLeft') {
+                clearTimeout(arrowLeftKeyDownTimer);
+                arrowLeftKeyDownTimer = null;
+                if (continuousSeekTimer) {
+                    clearInterval(continuousSeekTimer);
+                    continuousSeekTimer = null;
+                    console.log('Stop continuous seek backwards');
+                }
+                // Short press navigation is handled in the other keydown listener if arrowLeftLongPressOccurred is false
+            } else if (event.key === 'ArrowRight') {
+                clearTimeout(arrowRightKeyDownTimer);
+                arrowRightKeyDownTimer = null;
+                if (continuousSeekTimer) {
+                    clearInterval(continuousSeekTimer);
+                    continuousSeekTimer = null;
+                    console.log('Stop continuous seek forwards');
+                }
+                // Short press navigation is handled in the other keydown listener if arrowRightLongPressOccurred is false
+            }
+        });
+
+        function performSeek(amount) {
+            if (audioSeekBarPresenter.disabled || !currentAudioSrc) return;
+
+            let newTime = parseFloat(audioSeekBarPresenter.value) + amount;
+            const duration = parseFloat(audioSeekBarPresenter.max);
+
+            if (newTime < 0) newTime = 0;
+            if (newTime > duration) newTime = duration;
+
+            audioSeekBarPresenter.value = newTime; // Optimistic update
+            audioTimeDisplayPresenter.textContent = `${formatTime(newTime)} / ${formatTime(duration)}`;
+            
+            channel.postMessage({
+                type: 'seekAudio',
+                time: newTime,
+                audioSrc: currentAudioSrc
+            });
+            console.log(`Seeked to ${newTime} for ${currentAudioSrc}`);
+        }
+        // --- End Added Keydown/Keyup for Long Press Audio Seeking ---
 
     </script>
 </body>
