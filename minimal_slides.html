@@ -57,6 +57,10 @@
         const totalSlides = 11;
         const audioFileNumberOffset = -1; // e.g., slide 1 maps to audio_0, so offset is -1
         const autoplayDelay = 3000; // milliseconds to wait after audio ends or if no audio
+        // --- Keyboard Shortcut Configuration ---
+        const longPressDuration = 500; // milliseconds to define a long press
+        const seekInterval = 5;      // seconds to seek audio forward/backward
+        const continuousSeekIntervalTime = 200; // milliseconds for continuous seek interval
         // --- End Configuration ---
 
         const slideContainer = document.getElementById('slide-container');
@@ -73,6 +77,13 @@
         let currentSlide = 1;
         let isAutoplaying = false;
         let autoplayTimeoutId = null;
+
+        // --- Keyboard Shortcut State ---
+        let arrowLeftKeyDownTimer = null;
+        let arrowRightKeyDownTimer = null;
+        let arrowLeftLongPressOccurred = false;
+        let arrowRightLongPressOccurred = false;
+        let continuousSeekTimer = null; // Timer for continuous seeking
 
         function formatTime(timeInSeconds) {
             const minutes = Math.floor(timeInSeconds / 60);
@@ -243,6 +254,104 @@
         
         autoplayToggleBtn.disabled = true;
         displaySlide(currentSlide);
+
+        // --- Keyboard Shortcuts ---
+        document.addEventListener('keydown', (event) => {
+            if (event.key === ' ') {
+                event.preventDefault(); // Prevent default space bar action (e.g., scrolling)
+                autoplayToggleBtn.click(); // Simulate click on Autoplay/Pause button
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                if (event.repeat) return; 
+
+                arrowLeftLongPressOccurred = false; 
+                clearTimeout(arrowLeftKeyDownTimer); 
+                clearInterval(continuousSeekTimer); // Clear any ongoing continuous seek
+
+                if (isAutoplaying) { 
+                    arrowLeftKeyDownTimer = setTimeout(() => {
+                        arrowLeftLongPressOccurred = true;
+                        arrowLeftKeyDownTimer = null; 
+                        
+                        // Initial seek
+                        if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
+                            console.log('Long press ArrowLeft: Initial seek backward');
+                            slideAudio.currentTime = Math.max(0, slideAudio.currentTime - seekInterval);
+                            audioSeekBar.value = slideAudio.currentTime; 
+                            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+                        }
+
+                        // Start continuous seeking
+                        continuousSeekTimer = setInterval(() => {
+                            if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
+                                console.log('Continuous seek ArrowLeft: Seek backward');
+                                slideAudio.currentTime = Math.max(0, slideAudio.currentTime - seekInterval);
+                                audioSeekBar.value = slideAudio.currentTime;
+                                audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+                            } else {
+                                clearInterval(continuousSeekTimer); // Stop if audio is not ready or paused
+                            }
+                        }, continuousSeekIntervalTime);
+                    }, longPressDuration);
+                }
+
+            } else if (event.key === 'ArrowRight') {
+                if (event.repeat) return;
+
+                arrowRightLongPressOccurred = false;
+                clearTimeout(arrowRightKeyDownTimer);
+                clearInterval(continuousSeekTimer); // Clear any ongoing continuous seek
+
+                if (isAutoplaying) { 
+                    arrowRightKeyDownTimer = setTimeout(() => {
+                        arrowRightLongPressOccurred = true;
+                        arrowRightKeyDownTimer = null;
+
+                        // Initial seek
+                        if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
+                            console.log('Long press ArrowRight: Initial seek forward');
+                            slideAudio.currentTime = Math.min(slideAudio.duration, slideAudio.currentTime + seekInterval);
+                            audioSeekBar.value = slideAudio.currentTime;
+                            audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+                        }
+
+                        // Start continuous seeking
+                        continuousSeekTimer = setInterval(() => {
+                            if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error && !slideAudio.paused) {
+                                console.log('Continuous seek ArrowRight: Seek forward');
+                                slideAudio.currentTime = Math.min(slideAudio.duration, slideAudio.currentTime + seekInterval);
+                                audioSeekBar.value = slideAudio.currentTime;
+                                audioTimeDisplay.textContent = `${formatTime(slideAudio.currentTime)} / ${formatTime(slideAudio.duration)}`;
+                            } else {
+                                clearInterval(continuousSeekTimer); // Stop if audio is not ready or paused
+                            }
+                        }, continuousSeekIntervalTime);
+                    }, longPressDuration);
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.key === 'ArrowLeft') {
+                clearTimeout(arrowLeftKeyDownTimer);
+                clearInterval(continuousSeekTimer); 
+                if (!arrowLeftLongPressOccurred) {
+                    console.log('Short press ArrowLeft: Previous slide');
+                    prevBtn.click();
+                }
+                arrowLeftLongPressOccurred = false; 
+            } else if (event.key === 'ArrowRight') {
+                clearTimeout(arrowRightKeyDownTimer);
+                clearInterval(continuousSeekTimer);
+                if (!arrowRightLongPressOccurred) {
+                    console.log('Short press ArrowRight: Next slide');
+                    nextBtn.click();
+                }
+                arrowRightLongPressOccurred = false;
+            }
+        });
     </script>
 </body>
 </html>
