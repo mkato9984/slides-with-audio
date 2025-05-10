@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforceスライド修正最終テスト</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'Meiryo', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        
+        h1 {
+            color: #0066cc;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        h2 {
+            color: #0066cc;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 5px solid #0066cc;
+        }
+        
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #0066cc;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #0052a3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .warning {
+            color: orange;
+            font-weight: bold;
+        }
+        
+        .info {
+            color: blue;
+        }
+        
+        .test-description {
+            margin-bottom: 15px;
+        }
+        
+        .test-steps {
+            background-color: #f0f7ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .test-steps ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        
+        .test-steps li {
+            margin-bottom: 8px;
+        }
+        
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Salesforceスライド修正最終テスト</h1>
+          <div class="card">
+            <h2>テスト対象の修正点</h2>
+            <ol>
+                <li>メイン画面が常にスライド1から開始するようになった</li>
+                <li>自動再生ボタンが初期状態で必ず無効になるようになった</li>
+                <li>プレゼンター画面でスライドが表示されるようになった</li>
+                <li>スライド1から自動再生でスライド2へ自動的に進むようになった</li>
+                <li>プレゼンター画面とメイン画面間の同期が正しく動作するようになった</li>
+                <li>ページのリロード後も初期状態が確実に保持されるようになった</li>
+            </ol>
+        </div>
+          <div class="card">
+            <h2>メイン画面テスト</h2>
+            <div class="test-description">
+                メインプレゼンテーション画面の動作テスト
+            </div>
+            <div class="test-steps">
+                <strong>テスト手順:</strong>
+                <ol>
+                    <li>「メイン画面を開く」ボタンをクリックしてプレゼンテーション画面を開きます</li>
+                    <li>スライド1から表示が開始することを確認します</li>
+                    <li>自動再生ボタンが初期状態でオフになっていることを確認します</li>
+                    <li>自動再生ボタンをクリックしてオンにします</li>
+                    <li>約5秒後に自動的にスライド2に進むことを確認します</li>
+                </ol>
+            </div>
+            <div class="button-group">
+                <button id="btn-open-main" class="btn">メイン画面を開く</button>
+                <button id="btn-test-main-autoplay" class="btn btn-secondary">自動再生テスト実行</button>
+                <button id="btn-check-main-state" class="btn btn-secondary">メイン画面の状態確認</button>
+                <button id="btn-reload-main" class="btn btn-secondary">メイン画面再読込テスト</button>
+            </div>
+            <div id="log-main" class="log"></div>
+        </div>
+        
+        <div class="card">
+            <h2>プレゼンター画面テスト</h2>
+            <div class="test-description">
+                プレゼンター画面の動作テスト
+            </div>
+            <div class="test-steps">
+                <strong>テスト手順:</strong>
+                <ol>
+                    <li>「プレゼンター画面を開く」ボタンをクリックしてプレゼンター画面を開きます</li>
+                    <li>スライドが正しく表示されることを確認します</li>
+                    <li>スライド1から表示が開始することを確認します</li>
+                    <li>自動再生ボタンが初期状態でオフになっていることを確認します</li>
+                </ol>
+            </div>
+            <div class="button-group">
+                <button id="btn-open-presenter" class="btn">プレゼンター画面を開く</button>
+                <button id="btn-check-presenter" class="btn btn-secondary">プレゼンター画面の状態確認</button>
+                <button id="btn-fix-presenter-slides" class="btn btn-success">プレゼンター画像表示を修正</button>
+                <button id="btn-reload-presenter" class="btn btn-secondary">プレゼンター再読込テスト</button>
+            </div>
+            <div id="log-presenter" class="log"></div>
+        </div>
+        
+        <div class="card">
+            <h2>同期テスト</h2>
+            <div class="test-description">
+                メイン画面とプレゼンター画面の同期機能テスト
+            </div>
+            <div class="test-steps">
+                <strong>テスト手順:</strong>
+                <ol>
+                    <li>メイン画面とプレゼンター画面の両方を開きます</li>
+                    <li>「同期テスト開始」ボタンをクリックして自動テストを実行します</li>
+                    <li>メイン画面でスライド移動したときにプレゼンター画面も追従するか確認します</li>
+                    <li>プレゼンター画面でスライド移動したときにメイン画面も追従するか確認します</li>
+                    <li>自動再生状態が両画面で同期されるか確認します</li>
+                </ol>
+            </div>
+            <div class="button-group">
+                <button id="btn-sync-test" class="btn">同期テスト開始</button>
+                <button id="btn-check-sync-state" class="btn btn-secondary">同期状態確認</button>
+            </div>
+            <div id="log-sync" class="log"></div>
+        </div>
+        
+        <div class="card">
+            <h2>総合テスト</h2>
+            <div class="test-description">
+                すべての機能を組み合わせた総合テスト
+            </div>
+            <div class="test-steps">
+                <strong>テスト手順:</strong>
+                <ol>
+                    <li>「総合テスト開始」ボタンをクリックして自動テストを実行します</li>
+                    <li>メイン画面とプレゼンター画面の両方が開かれ、連続したテストが行われます</li>
+                    <li>テスト結果がログに表示されます</li>
+                </ol>
+            </div>
+            <div class="button-group">
+                <button id="btn-full-test" class="btn btn-success">総合テスト開始</button>
+                <button id="btn-stop-tests" class="btn btn-secondary">テスト停止</button>
+            </div>
+            <div id="log-full" class="log"></div>
+        </div>
+        
+        <footer>
+            &copy; 2025 Salesforce スライド修正テスト
+        </footer>
+    </div>
+      <script>
+        // グローバル変数
+        let windowReferences = {
+            main: null,
+            presenter: null
+        };
+        
+        let testTimers = [];
+        
+        // ログ表示用関数
+        function log(id, message, type = '') {
+            const logElement = document.getElementById(id);
+            const now = new Date();
+            const timeString = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+            
+            let className = '';
+            if (type === 'success') className = 'success';
+            if (type === 'error') className = 'error';
+            if (type === 'warning') className = 'warning';
+            if (type === 'info') className = 'info';
+            
+            logElement.innerHTML += `<div${className ? ` class="${className}"` : ''}>[${timeString}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // テスト終了時にタイマーをクリアする関数
+        function clearTestTimers() {
+            testTimers.forEach(timer => {
+                clearTimeout(timer);
+                clearInterval(timer);
+            });
+            testTimers = [];
+            log('log-full', 'すべてのテストタイマーをクリアしました', 'info');
+        }
+        
+        // メイン画面を開く
+        document.getElementById('btn-open-main').addEventListener('click', function() {
+            log('log-main', 'メイン画面を開きます...');
+            windowReferences.main = window.open('salesforce_slides01.html', 'main_window', 'width=1024,height=768');
+        });
+        
+        // プレゼンター画面を開く
+        document.getElementById('btn-open-presenter').addEventListener('click', function() {
+            log('log-presenter', 'プレゼンター画面を開きます...');
+            windowReferences.presenter = window.open('salesforce_slides01_presenter.html', 'presenter_window', 'width=1280,height=800');
+        });
+          // メイン画面の自動再生テスト
+        document.getElementById('btn-test-main-autoplay').addEventListener('click', function() {
+            log('log-main', '自動再生テストを開始します...', 'info');
+            
+            // テスト用のウィンドウを開く
+            const testWindow = window.open('salesforce_slides01.html', 'main_test', 'width=1024,height=768');
+            windowReferences.main = testWindow;
+            
+            // テスト手順
+            const timer1 = setTimeout(() => {
+                log('log-main', '1. メイン画面がロードされました');
+                
+                // スライド番号の確認
+                try {
+                    const currentSlide = testWindow.SlideshowCore.state.currentSlide;
+                    log('log-main', `   現在のスライド: ${currentSlide}`, currentSlide === 1 ? 'success' : 'error');
+                    
+                    // 自動再生状態の確認
+                    const autoplayState = testWindow.SlideshowCore.state.autoplayEnabled;
+                    log('log-main', `   自動再生状態: ${autoplayState ? 'オン' : 'オフ'}`, !autoplayState ? 'success' : 'error');
+                    
+                    // 自動再生ボタンをクリック
+                    log('log-main', '2. 自動再生ボタンをクリックします');
+                    const autoplayBtn = testWindow.document.getElementById('autoplay-btn');
+                    autoplayBtn.click();
+                    
+                    // クリック後の状態確認
+                    const timer2 = setTimeout(() => {
+                        const newAutoplayState = testWindow.SlideshowCore.state.autoplayEnabled;
+                        log('log-main', `   クリック後の自動再生状態: ${newAutoplayState ? 'オン' : 'オフ'}`, newAutoplayState ? 'success' : 'error');
+                        
+                        // スライド1から次へ進むかを確認（6秒後）
+                        log('log-main', '3. スライド1から自動的に進むかを確認します (6秒待機)...');
+                        
+                        const timer3 = setTimeout(() => {
+                            const finalSlide = testWindow.SlideshowCore.state.currentSlide;
+                            log('log-main', `   6秒後の現在のスライド: ${finalSlide}`, finalSlide === 2 ? 'success' : 'error');
+                            
+                            if (finalSlide === 2) {
+                                log('log-main', '✓ テスト成功: スライド1から自動的にスライド2に進みました', 'success');
+                            } else {
+                                log('log-main', '✗ テスト失敗: スライド1が自動的に進みませんでした', 'error');
+                            }
+                            
+                            // テスト完了を示す
+                            log('log-main', '自動再生テスト完了', 'info');
+                            
+                            // テストウィンドウはユーザーが閉じるため、自動的には閉じない
+                        }, 6000);
+                        testTimers.push(timer3);
+                    }, 1000);
+                    testTimers.push(timer2);
+                } catch (e) {
+                    log('log-main', `エラーが発生しました: ${e.message}`, 'error');
+                }
+            }, 2000);
+            testTimers.push(timer1);
+        });
+          // メイン画面の状態確認
+        document.getElementById('btn-check-main-state').addEventListener('click', function() {
+            log('log-main', 'メイン画面の状態を確認します...', 'info');
+            
+            // 最新のウィンドウを取得
+            let mainWindow = windowReferences.main;
+            
+            if (!mainWindow) {
+                mainWindow = window.open('', 'main_window');
+            }
+            
+            if (!mainWindow || mainWindow.closed) {
+                mainWindow = window.open('', 'main_test');
+            }
+            
+            if (!mainWindow || mainWindow.closed) {
+                log('log-main', '開いているメイン画面のウィンドウが見つかりません。新しく開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // スライド番号
+                const currentSlide = mainWindow.SlideshowCore.state.currentSlide;
+                log('log-main', `現在のスライド番号: ${currentSlide}`);
+                
+                // 自動再生状態
+                const autoplayEnabled = mainWindow.SlideshowCore.state.autoplayEnabled;
+                log('log-main', `自動再生状態: ${autoplayEnabled ? 'オン' : 'オフ'}`);
+                
+                // ボタン表示状態
+                const autoplayBtnActive = mainWindow.document.getElementById('autoplay-btn').classList.contains('active');
+                log('log-main', `自動再生ボタン表示状態: ${autoplayBtnActive ? 'アクティブ' : '非アクティブ'}`);
+                
+                // ローカルストレージ状態
+                const lsState = mainWindow.localStorage.getItem('sf01_autoplayState');
+                log('log-main', `LocalStorage 自動再生状態: ${lsState}`);
+                
+                // グローバル変数状態
+                const globalState = mainWindow.globalAutoplayState;
+                log('log-main', `グローバル変数自動再生状態: ${globalState}`);
+                
+                log('log-main', '状態確認完了', 'success');
+            } catch (e) {
+                log('log-main', `エラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // メイン画面を再読み込みして状態が保持されるかテスト
+        document.getElementById('btn-reload-main').addEventListener('click', function() {
+            log('log-main', 'メイン画面再読込テストを開始します...', 'info');
+            
+            let mainWindow = windowReferences.main;
+            
+            if (!mainWindow || mainWindow.closed) {
+                mainWindow = window.open('', 'main_window');
+                if (!mainWindow || mainWindow.closed) {
+                    mainWindow = window.open('', 'main_test');
+                }
+            }
+            
+            if (!mainWindow || mainWindow.closed) {
+                log('log-main', '開いているメイン画面のウィンドウが見つかりません。新しく開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // 再読込前の状態を記録
+                const beforeSlide = mainWindow.SlideshowCore.state.currentSlide;
+                const beforeAutoplay = mainWindow.SlideshowCore.state.autoplayEnabled;
+                log('log-main', `再読込前のスライド: ${beforeSlide}, 自動再生: ${beforeAutoplay ? 'オン' : 'オフ'}`);
+                
+                // スライド番号をローカルストレージで強制的に2に設定（初期化が正常なら1に戻るはず）
+                mainWindow.localStorage.setItem('sf01_currentSlide', '2');
+                
+                // 自動再生状態をオンに設定（初期化が正常ならオフに戻るはず）
+                mainWindow.localStorage.setItem('sf01_autoplayState', 'active');
+                
+                // ページを再読み込み
+                log('log-main', 'ページを再読み込みします...');
+                mainWindow.location.reload();
+                
+                // 再読込後の状態を確認（3秒待機）
+                const timer = setTimeout(() => {
+                    try {
+                        const afterSlide = mainWindow.SlideshowCore.state.currentSlide;
+                        const afterAutoplay = mainWindow.SlideshowCore.state.autoplayEnabled;
+                        
+                        log('log-main', `再読込後のスライド: ${afterSlide}, 自動再生: ${afterAutoplay ? 'オン' : 'オフ'}`);
+                        
+                        // 正しく初期化されているか確認
+                        if (afterSlide === 1) {
+                            log('log-main', '✓ スライド番号が正しく1にリセットされています', 'success');
+                        } else {
+                            log('log-main', `✗ スライド番号が正しくリセットされていません: ${afterSlide}`, 'error');
+                        }
+                        
+                        if (!afterAutoplay) {
+                            log('log-main', '✓ 自動再生状態が正しくオフにリセットされています', 'success');
+                        } else {
+                            log('log-main', '✗ 自動再生状態が正しくリセットされていません', 'error');
+                        }
+                        
+                    } catch (e) {
+                        log('log-main', `再読込後の確認中にエラーが発生しました: ${e.message}`, 'error');
+                    }
+                }, 3000);
+                
+                testTimers.push(timer);
+                
+            } catch (e) {
+                log('log-main', `エラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // プレゼンター画面の状態確認
+        document.getElementById('btn-check-presenter').addEventListener('click', function() {
+            log('log-presenter', 'プレゼンター画面の状態を確認します...', 'info');
+            
+            // 最新のウィンドウを取得
+            const presenterWindow = windowReferences.presenter || window.open('', 'presenter_window');
+            
+            if (!presenterWindow || presenterWindow.closed) {
+                log('log-presenter', '開いているプレゼンター画面のウィンドウが見つかりません。新しく開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // スライド番号
+                const currentSlide = presenterWindow.currentSlide;
+                log('log-presenter', `現在のスライド番号: ${currentSlide}`);
+                
+                // スライド画像の状態
+                const slideImages = presenterWindow.document.querySelectorAll('.slide-image');
+                log('log-presenter', `スライド画像要素数: ${slideImages.length}`);
+                
+                if (slideImages.length > 0) {
+                    slideImages.forEach((img, index) => {
+                        log('log-presenter', `スライド画像 ${index + 1} パス: ${img.src}`);
+                        log('log-presenter', `スライド画像 ${index + 1} 表示状態: ${img.complete ? '読み込み完了' : '読み込み中'}`);
+                    });
+                } else {
+                    log('log-presenter', 'スライド画像が見つかりません', 'warning');
+                }
+                
+                // 自動再生状態
+                const autoplayEnabled = presenterWindow.autoplayMode;
+                log('log-presenter', `自動再生状態: ${autoplayEnabled ? 'オン' : 'オフ'}`);
+                
+                // ボタン表示状態
+                const autoplayBtn = presenterWindow.document.querySelector('#autoplay-btn');
+                if (autoplayBtn) {
+                    log('log-presenter', `自動再生ボタン表示: ${autoplayBtn.classList.contains('active') ? 'アクティブ' : '非アクティブ'}`);
+                } else {
+                    log('log-presenter', '自動再生ボタンが見つかりません', 'warning');
+                }
+                
+                log('log-presenter', '状態確認完了', 'success');
+            } catch (e) {
+                log('log-presenter', `エラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // プレゼンター画面再読込テスト
+        document.getElementById('btn-reload-presenter').addEventListener('click', function() {
+            log('log-presenter', 'プレゼンター画面再読込テストを開始します...', 'info');
+            
+            const presenterWindow = windowReferences.presenter || window.open('', 'presenter_window');
+            
+            if (!presenterWindow || presenterWindow.closed) {
+                log('log-presenter', '開いているプレゼンター画面のウィンドウが見つかりません。新しく開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // 再読込前の状態を記録
+                const beforeSlide = presenterWindow.currentSlide;
+                const beforeAutoplay = presenterWindow.autoplayMode;
+                log('log-presenter', `再読込前のスライド: ${beforeSlide}, 自動再生: ${beforeAutoplay ? 'オン' : 'オフ'}`);
+                
+                // スライド番号をローカルストレージで強制的に3に設定（初期化が正常なら1に戻るはず）
+                presenterWindow.localStorage.setItem('sf01_currentSlide', '3');
+                
+                // 自動再生状態をオンに設定（初期化が正常ならオフに戻るはず）
+                presenterWindow.localStorage.setItem('sf01_autoplayState', 'active');
+                
+                // ページを再読み込み
+                log('log-presenter', 'ページを再読み込みします...');
+                presenterWindow.location.reload();
+                
+                // 再読込後の状態を確認（3秒待機）
+                const timer = setTimeout(() => {
+                    try {
+                        const afterSlide = presenterWindow.currentSlide;
+                        const afterAutoplay = presenterWindow.autoplayMode;
+                        
+                        log('log-presenter', `再読込後のスライド: ${afterSlide}, 自動再生: ${afterAutoplay ? 'オン' : 'オフ'}`);
+                        
+                        // 正しく初期化されているか確認
+                        if (afterSlide === 1) {
+                            log('log-presenter', '✓ スライド番号が正しく1にリセットされています', 'success');
+                        } else {
+                            log('log-presenter', `✗ スライド番号が正しくリセットされていません: ${afterSlide}`, 'error');
+                        }
+                        
+                        if (!afterAutoplay) {
+                            log('log-presenter', '✓ 自動再生状態が正しくオフにリセットされています', 'success');
+                        } else {
+                            log('log-presenter', '✗ 自動再生状態が正しくリセットされていません', 'error');
+                        }
+                        
+                        // スライド画像の表示も確認
+                        const slideImages = presenterWindow.document.querySelectorAll('.slide-image');
+                        if (slideImages.length > 0) {
+                            log('log-presenter', `✓ スライド画像が ${slideImages.length} 個表示されています`, 'success');
+                        } else {
+                            log('log-presenter', '✗ スライド画像が表示されていません', 'error');
+                        }
+                        
+                    } catch (e) {
+                        log('log-presenter', `再読込後の確認中にエラーが発生しました: ${e.message}`, 'error');
+                    }
+                }, 3000);
+                
+                testTimers.push(timer);
+                
+            } catch (e) {
+                log('log-presenter', `エラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // プレゼンター画像表示を修正
+        document.getElementById('btn-fix-presenter-slides').addEventListener('click', function() {
+            log('log-presenter', 'プレゼンター画像表示の修正を試みます...', 'info');
+            
+            // 最新のウィンドウを取得
+            const presenterWindow = window.open('', 'presenter_window');
+            
+            if (!presenterWindow || presenterWindow.closed) {
+                log('log-presenter', '開いているプレゼンター画面のウィンドウが見つかりません。新しく開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // スライドプレビュー要素を取得
+                const currentSlidePreview = presenterWindow.document.querySelector('.current-slide-preview');
+                const nextSlidePreview = presenterWindow.document.querySelector('.next-slide-preview');
+                
+                if (!currentSlidePreview || !nextSlidePreview) {
+                    log('log-presenter', 'プレビュー要素が見つかりませんでした', 'error');
+                    return;
+                }
+                
+                // 現在のスライド番号を取得（存在しない場合は1）
+                const currentSlide = presenterWindow.currentSlide || 1;
+                log('log-presenter', `現在のスライド番号: ${currentSlide}`);
+                
+                // 既存の画像を削除
+                currentSlidePreview.innerHTML = '';
+                nextSlidePreview.innerHTML = '';
+                
+                // 新しい画像要素を作成
+                const currentImg = presenterWindow.document.createElement('img');
+                currentImg.className = 'slide-image';
+                const currentPaddedNumber = currentSlide.toString().padStart(2, '0');
+                currentImg.src = `salesforce_slides/salesforce_slides01/slide${currentPaddedNumber}.png`;
+                currentImg.alt = `スライド ${currentSlide}`;
+                currentSlidePreview.appendChild(currentImg);
+                
+                // 次のスライド画像を作成
+                const nextSlide = currentSlide < 11 ? currentSlide + 1 : 11;
+                const nextImg = presenterWindow.document.createElement('img');
+                nextImg.className = 'slide-image';
+                const nextPaddedNumber = nextSlide.toString().padStart(2, '0');
+                nextImg.src = `salesforce_slides/salesforce_slides01/slide${nextPaddedNumber}.png`;
+                nextImg.alt = `スライド ${nextSlide}`;
+                nextSlidePreview.appendChild(nextImg);
+                
+                log('log-presenter', '画像要素を再作成しました', 'success');
+                
+                // スタイルを追加
+                const style = presenterWindow.document.createElement('style');
+                style.innerHTML = `
+                    .current-slide-preview, .next-slide-preview {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        min-height: 200px !important;
+                    }
+                    
+                    .slide-image {
+                        max-width: 100% !important;
+                        max-height: 100% !important;
+                        object-fit: contain !important;
+                        display: block !important;
+                    }
+                `;
+                presenterWindow.document.head.appendChild(style);
+                log('log-presenter', 'スタイルを修正しました', 'success');
+                
+            } catch (e) {
+                log('log-presenter', `エラーが発生しました: ${e.message}`, 'error');            }
+        });
+        
+        // 同期テスト
+        document.getElementById('btn-sync-test').addEventListener('click', function() {
+            log('log-sync', '同期テストを開始します...', 'info');
+            
+            // メインとプレゼンター画面の両方を確認
+            const mainWindow = windowReferences.main || window.open('', 'main_window');
+            const presenterWindow = windowReferences.presenter || window.open('', 'presenter_window');
+            
+            if (!mainWindow || mainWindow.closed) {
+                log('log-sync', 'メイン画面が開いていません。先に「メイン画面を開く」ボタンをクリックしてください。', 'error');
+                return;
+            }
+            
+            if (!presenterWindow || presenterWindow.closed) {
+                log('log-sync', 'プレゼンター画面が開いていません。先に「プレゼンター画面を開く」ボタンをクリックしてください。', 'error');
+                return;
+            }
+            
+            log('log-sync', '両画面が開いていることを確認しました。同期テスト開始...', 'info');
+            
+            // 初期状態の確認
+            try {
+                const mainInitialSlide = mainWindow.SlideshowCore.state.currentSlide;
+                const presenterInitialSlide = presenterWindow.currentSlide;
+                
+                log('log-sync', `初期状態 - メイン: スライド ${mainInitialSlide}, プレゼンター: スライド ${presenterInitialSlide}`);
+                
+                // テスト1: メインからプレゼンターへの同期
+                log('log-sync', '1. メイン画面でスライド3に移動します...');
+                mainWindow.SlideshowCore.changeSlide(3);
+                
+                const timer1 = setTimeout(() => {
+                    const mainSlide = mainWindow.SlideshowCore.state.currentSlide;
+                    const presenterSlide = presenterWindow.currentSlide;
+                    
+                    log('log-sync', `メイン移動後 - メイン: スライド ${mainSlide}, プレゼンター: スライド ${presenterSlide}`);
+                    
+                    if (presenterSlide === mainSlide) {
+                        log('log-sync', '✓ メインからプレゼンターへの同期成功', 'success');
+                    } else {
+                        log('log-sync', '✗ メインからプレゼンターへの同期失敗', 'error');
+                    }
+                    
+                    // テスト2: プレゼンターからメインへの同期
+                    log('log-sync', '2. プレゼンター画面でスライド5に移動します...');
+                    presenterWindow.changeSlide(5);
+                    
+                    const timer2 = setTimeout(() => {
+                        const mainSlide2 = mainWindow.SlideshowCore.state.currentSlide;
+                        const presenterSlide2 = presenterWindow.currentSlide;
+                        
+                        log('log-sync', `プレゼンター移動後 - メイン: スライド ${mainSlide2}, プレゼンター: スライド ${presenterSlide2}`);
+                        
+                        if (presenterSlide2 === mainSlide2) {
+                            log('log-sync', '✓ プレゼンターからメインへの同期成功', 'success');
+                        } else {
+                            log('log-sync', '✗ プレゼンターからメインへの同期失敗', 'error');
+                        }
+                        
+                        // テスト3: 自動再生状態の同期テスト
+                        log('log-sync', '3. メイン画面で自動再生をONにします...');
+                        
+                        // 自動再生状態をオンにする
+                        const autoplayBtn = mainWindow.document.getElementById('autoplay-btn');
+                        autoplayBtn.click();
+                        
+                        const timer3 = setTimeout(() => {
+                            const mainAutoplay = mainWindow.SlideshowCore.state.autoplayEnabled;
+                            const presenterAutoplay = presenterWindow.autoplayMode;
+                            
+                            log('log-sync', `自動再生ON後 - メイン: ${mainAutoplay ? 'オン' : 'オフ'}, プレゼンター: ${presenterAutoplay ? 'オン' : 'オフ'}`);
+                            
+                            if (mainAutoplay === presenterAutoplay) {
+                                log('log-sync', '✓ 自動再生状態の同期成功', 'success');
+                            } else {
+                                log('log-sync', '✗ 自動再生状態の同期失敗', 'error');
+                            }
+                            
+                            // テスト4: 自動再生をオフに戻す
+                            log('log-sync', '4. メイン画面で自動再生をOFFに戻します...');
+                            autoplayBtn.click();
+                            
+                            const timer4 = setTimeout(() => {
+                                const mainAutoplay2 = mainWindow.SlideshowCore.state.autoplayEnabled;
+                                const presenterAutoplay2 = presenterWindow.autoplayMode;
+                                
+                                log('log-sync', `自動再生OFF後 - メイン: ${mainAutoplay2 ? 'オン' : 'オフ'}, プレゼンター: ${presenterAutoplay2 ? 'オン' : 'オフ'}`);
+                                
+                                if (!mainAutoplay2 && !presenterAutoplay2) {
+                                    log('log-sync', '✓ 自動再生状態の同期成功', 'success');
+                                } else {
+                                    log('log-sync', '✗ 自動再生状態の同期失敗', 'error');
+                                }
+                                
+                                // スライドを元に戻す
+                                mainWindow.SlideshowCore.changeSlide(1);
+                                log('log-sync', '同期テスト完了、スライドを1に戻します', 'info');
+                                
+                            }, 1000);
+                            testTimers.push(timer4);
+                            
+                        }, 1000);
+                        testTimers.push(timer3);
+                        
+                    }, 1000);
+                    testTimers.push(timer2);
+                    
+                }, 1000);
+                testTimers.push(timer1);
+                
+            } catch (e) {
+                log('log-sync', `同期テスト中にエラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // 同期状態確認
+        document.getElementById('btn-check-sync-state').addEventListener('click', function() {
+            log('log-sync', '同期状態を確認します...', 'info');
+            
+            // メインとプレゼンター画面の両方を確認
+            const mainWindow = windowReferences.main || window.open('', 'main_window');
+            const presenterWindow = windowReferences.presenter || window.open('', 'presenter_window');
+            
+            if (!mainWindow || mainWindow.closed || !presenterWindow || presenterWindow.closed) {
+                log('log-sync', '両画面が開いていません。先にメイン画面とプレゼンター画面を開いてください。', 'error');
+                return;
+            }
+            
+            try {
+                // スライド番号の同期状態
+                const mainSlide = mainWindow.SlideshowCore.state.currentSlide;
+                const presenterSlide = presenterWindow.currentSlide;
+                log('log-sync', `スライド番号同期状態 - メイン: ${mainSlide}, プレゼンター: ${presenterSlide}`);
+                
+                if (mainSlide === presenterSlide) {
+                    log('log-sync', '✓ スライド番号は同期しています', 'success');
+                } else {
+                    log('log-sync', '✗ スライド番号が同期していません', 'error');
+                }
+                
+                // 自動再生状態の同期状態
+                const mainAutoplay = mainWindow.SlideshowCore.state.autoplayEnabled;
+                const presenterAutoplay = presenterWindow.autoplayMode;
+                log('log-sync', `自動再生状態同期 - メイン: ${mainAutoplay ? 'オン' : 'オフ'}, プレゼンター: ${presenterAutoplay ? 'オン' : 'オフ'}`);
+                
+                if (mainAutoplay === presenterAutoplay) {
+                    log('log-sync', '✓ 自動再生状態は同期しています', 'success');
+                } else {
+                    log('log-sync', '✗ 自動再生状態が同期していません', 'error');
+                }
+                
+                // ローカルストレージの同期状態
+                const mainStorage = mainWindow.localStorage.getItem('sf01_currentSlide');
+                const presenterStorage = presenterWindow.localStorage.getItem('sf01_currentSlide');
+                log('log-sync', `LocalStorage同期状態 - メイン: ${mainStorage}, プレゼンター: ${presenterStorage}`);
+                
+            } catch (e) {
+                log('log-sync', `同期状態確認中にエラーが発生しました: ${e.message}`, 'error');
+            }
+        });
+        
+        // 総合テスト
+        document.getElementById('btn-full-test').addEventListener('click', function() {
+            log('log-full', '総合テストを開始します...', 'info');
+            
+            // すべての既存のウィンドウを閉じる
+            if (windowReferences.main && !windowReferences.main.closed) {
+                windowReferences.main.close();
+            }
+            if (windowReferences.presenter && !windowReferences.presenter.closed) {
+                windowReferences.presenter.close();
+            }
+            
+            // タイマーをクリア
+            clearTestTimers();
+            
+            // 新しいウィンドウを開く
+            log('log-full', '1. メイン画面を開きます...');
+            windowReferences.main = window.open('salesforce_slides01.html', 'main_window', 'width=1024,height=768');
+            
+            const timer1 = setTimeout(() => {
+                log('log-full', '2. プレゼンター画面を開きます...');
+                windowReferences.presenter = window.open('salesforce_slides01_presenter.html', 'presenter_window', 'width=1280,height=800');
+                
+                const timer2 = setTimeout(() => {
+                    try {
+                        // 初期状態の確認
+                        const mainSlide = windowReferences.main.SlideshowCore.state.currentSlide;
+                        const presenterSlide = windowReferences.presenter.currentSlide;
+                        const mainAutoplay = windowReferences.main.SlideshowCore.state.autoplayEnabled;
+                        const presenterAutoplay = windowReferences.presenter.autoplayMode;
+                        
+                        log('log-full', '3. 初期状態を確認します...');
+                        log('log-full', `   メイン: スライド ${mainSlide}, 自動再生 ${mainAutoplay ? 'オン' : 'オフ'}`);
+                        log('log-full', `   プレゼンター: スライド ${presenterSlide}, 自動再生 ${presenterAutoplay ? 'オン' : 'オフ'}`);
+                        
+                        let passCount = 0;
+                        let failCount = 0;
+                        
+                        if (mainSlide === 1) passCount++; else failCount++;
+                        if (presenterSlide === 1) passCount++; else failCount++;
+                        if (!mainAutoplay) passCount++; else failCount++;
+                        if (!presenterAutoplay) passCount++; else failCount++;
+                        
+                        log('log-full', `   初期状態テスト結果: ${passCount}個成功, ${failCount}個失敗`);
+                        
+                        // 同期テスト
+                        log('log-full', '4. 同期テストを実行します...');
+                        
+                        // メイン側でスライド移動
+                        windowReferences.main.SlideshowCore.changeSlide(3);
+                        log('log-full', '   メイン画面でスライド3に移動します...');
+                        
+                        const timer3 = setTimeout(() => {
+                            const mainSlide2 = windowReferences.main.SlideshowCore.state.currentSlide;
+                            const presenterSlide2 = windowReferences.presenter.currentSlide;
+                            
+                            log('log-full', `   メイン移動後: メイン=${mainSlide2}, プレゼンター=${presenterSlide2}`);
+                            
+                            if (mainSlide2 === presenterSlide2) {
+                                log('log-full', '   ✓ メイン→プレゼンター同期テスト成功', 'success');
+                                passCount++;
+                            } else {
+                                log('log-full', '   ✗ メイン→プレゼンター同期テスト失敗', 'error');
+                                failCount++;
+                            }
+                            
+                            // 自動再生テスト
+                            log('log-full', '5. 自動再生機能テストを実行します...');
+                            
+                            // スライド1に戻す
+                            windowReferences.main.SlideshowCore.changeSlide(1);
+                            log('log-full', '   スライド1に戻します...');
+                            
+                            const timer4 = setTimeout(() => {
+                                // 自動再生をオンにする
+                                log('log-full', '   自動再生をオンにします...');
+                                const autoplayBtn = windowReferences.main.document.getElementById('autoplay-btn');
+                                autoplayBtn.click();
+                                
+                                const timer5 = setTimeout(() => {
+                                    const mainAutoplay2 = windowReferences.main.SlideshowCore.state.autoplayEnabled;
+                                    const presenterAutoplay2 = windowReferences.presenter.autoplayMode;
+                                    
+                                    log('log-full', `   自動再生設定後: メイン=${mainAutoplay2 ? 'オン' : 'オフ'}, プレゼンター=${presenterAutoplay2 ? 'オン' : 'オフ'}`);
+                                    
+                                    if (mainAutoplay2 && presenterAutoplay2) {
+                                        log('log-full', '   ✓ 自動再生同期テスト成功', 'success');
+                                        passCount++;
+                                    } else {
+                                        log('log-full', '   ✗ 自動再生同期テスト失敗', 'error');
+                                        failCount++;
+                                    }
+                                    
+                                    // 自動スライド進行のテスト
+                                    log('log-full', '6. スライド1から自動的に進むかテストします (6秒待機)...');
+                                    
+                                    const timer6 = setTimeout(() => {
+                                        const finalSlide = windowReferences.main.SlideshowCore.state.currentSlide;
+                                        log('log-full', `   6秒後のスライド: ${finalSlide}`);
+                                        
+                                        if (finalSlide > 1) {
+                                            log('log-full', '   ✓ 自動スライド進行テスト成功', 'success');
+                                            passCount++;
+                                        } else {
+                                            log('log-full', '   ✗ 自動スライド進行テスト失敗', 'error');
+                                            failCount++;
+                                        }
+                                        
+                                        // すべてのテスト完了、要約を表示
+                                        log('log-full', '総合テスト完了', 'info');
+                                        log('log-full', `テスト結果: ${passCount}個成功, ${failCount}個失敗`, passCount > failCount ? 'success' : 'error');
+                                        
+                                        if (passCount > failCount) {
+                                            log('log-full', '✓ 修正は効果的に機能しています', 'success');
+                                        } else {
+                                            log('log-full', '✗ まだいくつかの問題が残っています', 'error');
+                                        }
+                                        
+                                        // 自動再生をオフに戻す
+                                        autoplayBtn.click();
+                                        
+                                    }, 6000);
+                                    testTimers.push(timer6);
+                                    
+                                }, 1000);
+                                testTimers.push(timer5);
+                                
+                            }, 1000);
+                            testTimers.push(timer4);
+                            
+                        }, 1000);
+                        testTimers.push(timer3);
+                        
+                    } catch (e) {
+                        log('log-full', `総合テスト中にエラーが発生しました: ${e.message}`, 'error');
+                    }
+                    
+                }, 2000);
+                testTimers.push(timer2);
+                
+            }, 2000);
+            testTimers.push(timer1);
+        });
+        
+        // テスト停止
+        document.getElementById('btn-stop-tests').addEventListener('click', function() {
+            log('log-full', 'テストを停止します...', 'warning');
+            clearTestTimers();
+        });
+        
+        // 初期ログメッセージ
+        log('log-main', 'テストページが読み込まれました。上のボタンからテストを開始してください。', 'info');
+        log('log-presenter', 'テストページが読み込まれました。上のボタンからテストを開始してください。', 'info');
+        log('log-sync', '同期テストを実行する準備ができました。まず両方の画面を開いてください。', 'info');
+        log('log-full', '総合テストの準備ができました。「総合テスト開始」をクリックすると自動テストが開始されます。', 'info');
+    </script>
+</body>
+</html>

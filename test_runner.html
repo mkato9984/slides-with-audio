@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テスト実行手順</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #0066cc;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-top: 20px;
+            background-color: #f0f0f0;
+            padding: 8px;
+        }
+        .test-case {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .test-case h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .test-steps {
+            list-style-type: decimal;
+            padding-left: 20px;
+        }
+        .check-point {
+            background-color: #f9f9f9;
+            padding: 8px;
+            border-left: 3px solid #0066cc;
+            margin: 10px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #004c99;
+        }
+        .button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .results textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            margin-top: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+        }
+    </style>
+    <script src="sync_test_results.js"></script>
+</head>
+<body>
+    <h1>Salesforce スライドショー 同期テスト</h1>
+    
+    <div>
+        <p>このページはSalesforceスライドショーの同期テスト実行のためのページです。以下の手順に従ってテストしてください。</p>
+        <p>事前準備: 両方のビューを開いてください</p>
+        <button class="button" onclick="window.open('salesforce_slides01.html', '_blank')">メインビューを開く</button>
+        <button class="button" onclick="window.open('salesforce_slides01_presenter.html', '_blank')">プレゼンタービューを開く</button>
+    </div>
+    
+    <h2>テストケース</h2>
+    
+    <div class="test-case">
+        <h3>1. 自動再生状態の基本同期</h3>
+        <ol class="test-steps">
+            <li>
+                メインビューで「自動再生」ボタンをクリック
+                <div class="check-point">確認点: プレゼンタービューでも自動再生ボタンがアクティブになり、音声が再生される</div>
+            </li>
+            <li>
+                メインビューで再度「自動再生」ボタンをクリックして停止
+                <div class="check-point">確認点: プレゼンタービューでも自動再生が停止する</div>
+            </li>
+            <li>
+                プレゼンタービューで「自動再生」ボタンをクリック
+                <div class="check-point">確認点: メインビューでも自動再生ボタンがアクティブになり、音声が再生される</div>
+            </li>
+            <li>
+                プレゼンタービューで再度「自動再生」ボタンをクリックして停止
+                <div class="check-point">確認点: メインビューでも自動再生が停止する</div>
+            </li>
+        </ol>
+        <button class="button" onclick="runTest1()">このテストを実行</button>
+    </div>
+    
+    <div class="test-case">
+        <h3>2. スライド切り替え時の状態維持</h3>
+        <ol class="test-steps">
+            <li>
+                メインビューで「自動再生」ボタンをクリックして開始
+                <div class="check-point">確認点: 自動再生が開始され、音声が再生される</div>
+            </li>
+            <li>
+                「次へ」ボタンを複数回クリックしてスライドを進める
+                <div class="check-point">確認点: スライド切り替え後も自動再生状態が維持され、新しいスライドの音声が再生される</div>
+                <div class="check-point">確認点: プレゼンタービューもスライドと自動再生状態が同期されている</div>
+            </li>
+            <li>
+                自動再生を停止
+                <div class="check-point">確認点: 両方のビューで自動再生が停止する</div>
+            </li>
+            <li>
+                プレゼンタービューで「自動再生」ボタンをクリックして開始し、スライドを進める
+                <div class="check-point">確認点: スライド切り替え後も自動再生状態が維持される</div>
+                <div class="check-point">確認点: メインビューもスライドと自動再生状態が同期されている</div>
+            </li>
+        </ol>
+        <button class="button" onclick="runTest2()">このテストを実行</button>
+    </div>
+    
+    <div class="test-case">
+        <h3>3. 音声再生と自動再生の連携</h3>
+        <ol class="test-steps">
+            <li>
+                メインビューで「自動再生」開始後、「音声停止」ボタンをクリック
+                <div class="check-point">確認点: 自動再生モードも停止する</div>
+                <div class="check-point">確認点: プレゼンタービューでも両方が停止する</div>
+            </li>
+            <li>
+                「自動再生」なしで「音声再生」ボタンをクリック
+                <div class="check-point">確認点: 音声のみが再生され、自動再生は開始されない</div>
+                <div class="check-point">確認点: プレゼンタービューにも状態が反映される</div>
+            </li>
+        </ol>
+        <button class="button" onclick="runTest3()">このテストを実行</button>
+    </div>
+    
+    <div class="test-case">
+        <h3>4. 同期の安定性テスト</h3>
+        <ol class="test-steps">
+            <li>
+                短時間に自動再生のON/OFFを複数回切り替える
+                <div class="check-point">確認点: 両方のビューが正しく同期されている</div>
+            </li>
+            <li>
+                自動再生中にいずれかのビューをリロード
+                <div class="check-point">確認点: リロード後も同期状態が復元される</div>
+            </li>
+        </ol>
+        <button class="button" onclick="runTest4()">このテストを実行</button>
+    </div>
+    
+    <h2>テスト結果</h2>
+    <div class="results">
+        <button class="button" onclick="exportResults()">テスト結果をエクスポート</button>
+        <p>テスト状態:</p>
+        <textarea id="test-results" readonly></textarea>
+    </div>
+    
+    <script>
+        // テストケース1の実行
+        function runTest1() {
+            let test = window.TestSync.runTest("自動再生状態の基本同期", "メインビューと プレゼンタービュー間の自動再生状態同期テスト");
+            test.recordStep("初期状態を記録");
+            document.getElementById('test-results').value = "テスト1「自動再生状態の基本同期」を実行中...\n" +
+                "テストを実行するには、メインビューとプレゼンタービューを開き、指示に従って操作してください。\n\n" +
+                "1. メインビューで「自動再生」ボタンをクリックし、プレゼンタービューも同期されることを確認\n" +
+                "2. メインビューで再度クリックして停止、プレゼンタービューも同期されることを確認\n" +
+                "3. プレゼンタービューで「自動再生」ボタンをクリックし、メインビューも同期されることを確認\n" +
+                "4. プレゼンタービューで再度クリックして停止、メインビューも同期されることを確認\n\n" +
+                "テスト完了後、「テスト結果をエクスポート」ボタンをクリックして結果を保存できます";
+        }
+        
+        // テストケース2の実行
+        function runTest2() {
+            let test = window.TestSync.runTest("スライド切り替え時の状態維持", "スライド切り替え時に自動再生状態が維持されるかテスト");
+            test.recordStep("初期状態を記録");
+            document.getElementById('test-results').value = "テスト2「スライド切り替え時の状態維持」を実行中...\n" +
+                "両方のビューを開いた状態で、以下の操作を行ってください：\n\n" +
+                "1. メインビューで「自動再生」ボタンをクリックして開始\n" +
+                "2. 「次へ」ボタンを複数回クリックしてスライドを進める\n" +
+                "3. スライド切り替え後も自動再生状態が維持されることを確認\n" +
+                "4. プレゼンタービューでも同期されていることを確認\n\n" +
+                "テスト完了後、「テスト結果をエクスポート」ボタンをクリックして結果を保存できます";
+        }
+        
+        // テストケース3の実行
+        function runTest3() {
+            let test = window.TestSync.runTest("音声再生と自動再生の連携", "音声の手動操作時に自動再生状態が適切に連携するかテスト");
+            test.recordStep("初期状態を記録");
+            document.getElementById('test-results').value = "テスト3「音声再生と自動再生の連携」を実行中...\n" +
+                "両方のビューを開いた状態で、以下の操作を行ってください：\n\n" +
+                "1. メインビューで「自動再生」開始後、「音声停止」ボタンをクリック\n" +
+                "2. 自動再生モードも停止することを確認\n" +
+                "3. プレゼンタービューでも両方が停止していることを確認\n" +
+                "4. 「自動再生」なしで「音声再生」ボタンをクリック\n" +
+                "5. 音声のみが再生され、自動再生は開始されないことを確認\n\n" +
+                "テスト完了後、「テスト結果をエクスポート」ボタンをクリックして結果を保存できます";
+        }
+        
+        // テストケース4の実行
+        function runTest4() {
+            let test = window.TestSync.runTest("同期の安定性テスト", "急速な状態変更やブラウザリロード時の同期安定性テスト");
+            test.recordStep("初期状態を記録");
+            document.getElementById('test-results').value = "テスト4「同期の安定性テスト」を実行中...\n" +
+                "両方のビューを開いた状態で、以下の操作を行ってください：\n\n" +
+                "1. 短時間に自動再生のON/OFFを複数回素早く切り替える\n" +
+                "2. 両方のビューが最終的に正しく同期されていることを確認\n" +
+                "3. 自動再生モードを開始した状態で、いずれかのビューをリロード\n" +
+                "4. リロード後も同期状態が復元されることを確認\n\n" +
+                "テスト完了後、「テスト結果をエクスポート」ボタンをクリックして結果を保存できます";
+        }
+        
+        // テスト結果のエクスポート
+        function exportResults() {
+            if (window.TestSync && window.TestSync.export) {
+                window.TestSync.export();
+                document.getElementById('test-results').value += "\n\nテスト結果をエクスポートしました。";
+            } else {
+                document.getElementById('test-results').value += "\n\nテスト結果のエクスポートに失敗しました。";
+            }
+        }
+    </script>
+</body>
+</html>

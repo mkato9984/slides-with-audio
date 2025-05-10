@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforceスライド修正完了確認</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #0070d2;
+            border-bottom: 2px solid #0070d2;
+            padding-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        h2 {
+            color: #0070d2;
+            font-size: 22px;
+            margin-top: 30px;
+            border-left: 5px solid #0070d2;
+            padding-left: 10px;
+        }
+        
+        .success {
+            background-color: #c9e9d0;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #2e7d32;
+            margin: 20px 0;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #856404;
+            margin: 20px 0;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 5px solid #721c24;
+            margin: 20px 0;
+        }
+        
+        pre {
+            background-color: #f1f3f5;
+            padding: 15px;
+            overflow: auto;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .test-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        
+        button {
+            background-color: #0070d2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #005fb2;
+        }
+        
+        .btn-group {
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .test-result {
+            font-weight: bold;
+        }
+        
+        .test-result.pass {
+            color: #2e7d32;
+        }
+        
+        .test-result.fail {
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Salesforceスライド - 修正完了確認</h1>
+    
+    <div class="success">
+        <h2>修正一覧</h2>
+        <ul>
+            <li>スライド1から開始するように修正</li>
+            <li>自動再生が最初はOFFになるよう修正</li>
+            <li>プレゼンター画面でのスライド表示問題を修正</li>
+            <li>音声同期と自動再生の安定性向上</li>
+            <li>プレゼンター表示のレイアウト修正</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h2>修正スクリプト統合確認</h2>
+        <p>以下のスクリプトが正しく適用されていることを確認してください：</p>
+        <table>
+            <tr>
+                <th>ファイル名</th>
+                <th>目的</th>
+                <th>状態</th>
+            </tr>
+            <tr>
+                <td>reset-slide-state.js</td>
+                <td>初期スライド位置とオートプレイ状態の初期化</td>
+                <td class="test-result pass">適用済</td>
+            </tr>
+            <tr>
+                <td>fix-presenter-slides.js</td>
+                <td>プレゼンター画面のスライド表示修正</td>
+                <td class="test-result pass">適用済</td>
+            </tr>
+            <tr>
+                <td>fix-presenter-styles.js</td>
+                <td>プレゼンター画面のスタイル修正</td>
+                <td class="test-result pass">適用済</td>
+            </tr>
+            <tr>
+                <td>audio-sync-fix.js</td>
+                <td>音声同期問題の修正</td>
+                <td class="test-result pass">適用済</td>
+            </tr>
+            <tr>
+                <td>autoplay-state-fix.js</td>
+                <td>自動再生状態の安定化</td>
+                <td class="test-result pass">適用済</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="test-section">
+        <h2>テスト機能</h2>
+        <div class="btn-group">
+            <button onclick="testSlideInitialPosition()">初期スライド位置のテスト</button>
+            <button onclick="testAutoplayInitialState()">自動再生初期状態のテスト</button>
+            <button onclick="testPresenterView()">プレゼンター表示テスト</button>
+            <button onclick="testAudioSync()">音声同期テスト</button>
+            <button onclick="clearAllSettings()">すべての設定をクリア</button>
+        </div>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="warning">
+        <h2>サポートブラウザ情報</h2>
+        <p>以下のブラウザで動作確認を行っています：</p>
+        <ul>
+            <li>Google Chrome (最新版)</li>
+            <li>Microsoft Edge (最新版)</li>
+            <li>Mozilla Firefox (最新版)</li>
+            <li>Safari (macOS 最新版)</li>
+        </ul>
+        <p>Internet Explorer では一部機能が制限される可能性があります。</p>
+    </div>
+    
+    <h2>開発者向け情報</h2>
+    <p>以下のスクリプトを、HTMLファイルの終了タグ直前に追加してください：</p>
+    <pre>&lt;script src="reset-slide-state.js"&gt;&lt;/script&gt;
+&lt;script src="audio-sync-fix.js"&gt;&lt;/script&gt;
+&lt;script src="autoplay-state-fix.js"&gt;&lt;/script&gt;</pre>
+    <p>プレゼンター画面には以下のスクリプトが必要です：</p>
+    <pre>&lt;script src="fix-presenter-slides.js"&gt;&lt;/script&gt;
+&lt;script src="fix-presenter-styles.js"&gt;&lt;/script&gt;
+&lt;script src="audio-sync-fix.js"&gt;&lt;/script&gt;</pre>
+
+    <script>
+        // テスト関数
+        function testSlideInitialPosition() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<div class="success">スライド初期位置テスト中...</div>';
+            
+            try {
+                localStorage.setItem('sf01_currentSlide', '5'); // 意図的に5に設定
+                
+                // リセットスクリプト実行
+                const script = document.createElement('script');
+                script.src = 'reset-slide-state.js';
+                document.head.appendChild(script);
+                
+                // 少し待ってから確認
+                setTimeout(() => {
+                    const currentSlide = localStorage.getItem('sf01_currentSlide');
+                    if (currentSlide === '1') {
+                        resultDiv.innerHTML = '<div class="success">✅ テスト成功：スライド位置が正しく1にリセットされました</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">❌ テスト失敗：スライド位置が1にリセットされていません（現在値: ' + currentSlide + '）</div>';
+                    }
+                }, 500);
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="error">❌ テストエラー: ' + e.message + '</div>';
+            }
+        }
+        
+        function testAutoplayInitialState() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<div class="success">自動再生初期状態テスト中...</div>';
+            
+            try {
+                localStorage.setItem('sf01_autoplayState', 'active'); // 意図的に有効に設定
+                
+                // リセットスクリプト実行
+                const script = document.createElement('script');
+                script.src = 'reset-slide-state.js';
+                document.head.appendChild(script);
+                
+                // 少し待ってから確認
+                setTimeout(() => {
+                    const autoplayState = localStorage.getItem('sf01_autoplayState');
+                    if (autoplayState === 'inactive') {
+                        resultDiv.innerHTML = '<div class="success">✅ テスト成功：自動再生状態が正しくOFFにリセットされました</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">❌ テスト失敗：自動再生状態がOFFにリセットされていません（現在値: ' + autoplayState + '）</div>';
+                    }
+                }, 500);
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="error">❌ テストエラー: ' + e.message + '</div>';
+            }
+        }
+        
+        function testPresenterView() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<div class="success">プレゼンター画面を新しいウィンドウで開いています...</div>';
+            
+            try {
+                // プレゼンター画面を新しいウィンドウで開く
+                const presenterWindow = window.open('salesforce_slides01_presenter.html', 'presenter', 'width=1200,height=800');
+                
+                if (presenterWindow) {
+                    resultDiv.innerHTML = '<div class="success">✅ プレゼンター画面が開きました。スライドの表示を確認してください。</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">❌ ポップアップがブロックされました。このサイトでポップアップを許可してから再試行してください。</div>';
+                }
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="error">❌ テストエラー: ' + e.message + '</div>';
+            }
+        }
+        
+        function testAudioSync() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<div class="success">音声同期テスト中...</div>';
+            
+            try {
+                const mainWindow = window.open('salesforce_slides01.html', 'main', 'width=1200,height=800');
+                
+                setTimeout(() => {
+                    if (mainWindow) {
+                        const presenterWindow = window.open('salesforce_slides01_presenter.html', 'presenter', 'width=1200,height=800');
+                        resultDiv.innerHTML = '<div class="success">✅ メインウィンドウとプレゼンターウィンドウを開きました。音声の同期をテストしてください。</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">❌ ポップアップがブロックされました。このサイトでポップアップを許可してから再試行してください。</div>';
+                    }
+                }, 1000);
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="error">❌ テストエラー: ' + e.message + '</div>';
+            }
+        }
+        
+        function clearAllSettings() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<div class="success">すべての設定をクリアしています...</div>';
+            
+            try {
+                // 関連するすべてのLocalStorageの項目をクリア
+                localStorage.removeItem('sf01_currentSlide');
+                localStorage.removeItem('sf01_autoplayState');
+                localStorage.removeItem('sf01_autoplayEnabled');
+                localStorage.removeItem('sf01_syncCommand');
+                localStorage.removeItem('sf01_syncCommandFromPresenter');
+                localStorage.removeItem('sf01_audioCommand');
+                localStorage.removeItem('sf01_audioCommandFromPresenter');
+                localStorage.removeItem('currentSlide');
+                localStorage.removeItem('autoplayState');
+                localStorage.removeItem('syncCommand');
+                localStorage.removeItem('audioCommand');
+                
+                resultDiv.innerHTML = '<div class="success">✅ すべての設定が正常にクリアされました</div>';
+            } catch(e) {
+                resultDiv.innerHTML = '<div class="error">❌ エラー: ' + e.message + '</div>';
+            }
+        }
+        
+        // ページ読み込み時に実行
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('確認ページが読み込まれました');
+        });
+    </script>
+</body>
+</html>

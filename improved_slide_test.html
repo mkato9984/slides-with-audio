@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スライド修正後動作確認テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #0066cc;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #0066cc;
+            margin-top: 25px;
+        }
+        
+        .test-section {
+            background: #f8f8f8;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .test-button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        
+        .test-button:hover {
+            background: #004c99;
+        }
+        
+        .results {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 15px;
+        }
+        
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        
+        .failure {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .note {
+            background: #fffde7;
+            padding: 10px;
+            border-left: 4px solid #ffeb3b;
+            margin: 20px 0;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .checklist {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .checklist li {
+            margin-bottom: 8px;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .checklist li:before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>スライド修正動作確認テスト</h1>
+    
+    <div class="note">
+        <p>このテストページでは、以下の修正点が正しく機能しているか確認できます：</p>
+        <ol>
+            <li>メイン画面が常にスライド1から始まること</li>
+            <li>自動再生ボタンが初期状態でオフになっていること</li>
+            <li>プレゼンター画面でスライドが正しく表示されること</li>
+        </ol>
+    </div>
+    
+    <div class="grid">
+        <div class="test-section">
+            <h2>メイン画面テスト</h2>
+            <button class="test-button" id="open-main">メイン画面を開く</button>
+            <button class="test-button" id="test-main">自動テスト実行</button>
+            
+            <h3>確認項目:</h3>
+            <ul class="checklist">
+                <li>スライド1から表示が始まっているか</li>
+                <li>自動再生ボタンがオフの状態か</li>
+                <li>自動再生ボタンをオン→オフと切り替えられるか</li>
+            </ul>
+            
+            <div class="results" id="main-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>プレゼンター画面テスト</h2>
+            <button class="test-button" id="open-presenter">プレゼンター画面を開く</button>
+            <button class="test-button" id="test-presenter">自動テスト実行</button>
+            
+            <h3>確認項目:</h3>
+            <ul class="checklist">
+                <li>スライド画像が正しく表示されているか</li>
+                <li>スライド1から表示が始まっているか</li>
+                <li>自動再生ボタンがオフになっているか</li>
+            </ul>
+            
+            <div class="results" id="presenter-results"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>自動再生機能テスト</h2>
+        <p>以下のテストを行うと、自動再生機能が正しく動作するか確認できます。</p>
+        <button class="test-button" id="test-autoplay">自動再生検証テスト</button>
+        <div class="results" id="autoplay-results"></div>
+    </div>
+    
+    <script>
+        // メイン画面を開く
+        document.getElementById('open-main').addEventListener('click', function() {
+            window.open('salesforce_slides01.html', '_blank', 'width=1024,height=768');
+        });
+        
+        // プレゼンター画面を開く
+        document.getElementById('open-presenter').addEventListener('click', function() {
+            window.open('salesforce_slides01_presenter.html', '_blank', 'width=1280,height=800');
+        });
+        
+        // メイン画面の自動テスト
+        document.getElementById('test-main').addEventListener('click', function() {
+            const resultsEl = document.getElementById('main-results');
+            resultsEl.innerHTML = 'メイン画面テストを開始...\n';
+            
+            // テスト用のウィンドウを開く
+            const testWindow = window.open('salesforce_slides01.html', 'test_main', 'width=1024,height=768');
+            
+            // テスト手順
+            const testSteps = [
+                // ウィンドウがロードされるまで待機
+                {
+                    delay: 2000,
+                    action: () => {
+                        resultsEl.innerHTML += '1. プレゼンテーション画面がロードされました\n';
+                    }
+                },
+                // スライド番号の確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            const currentSlide = testWindow.SlideshowCore.state.currentSlide;
+                            resultsEl.innerHTML += `2. 現在のスライド: ${currentSlide}\n`;
+                            
+                            if (currentSlide === 1) {
+                                resultsEl.innerHTML += '<span class="success">✓ スライド1が正しく表示されています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ スライド1ではなくスライド${currentSlide}が表示されています</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                },
+                // 自動再生状態の確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            const autoplayState = testWindow.SlideshowCore.state.autoplayEnabled;
+                            resultsEl.innerHTML += `3. 自動再生状態: ${autoplayState ? 'オン' : 'オフ'}\n`;
+                            
+                            if (!autoplayState) {
+                                resultsEl.innerHTML += '<span class="success">✓ 自動再生が正しくオフになっています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ 自動再生が初期状態でオンになっています</span>\n';
+                            }
+                            
+                            // 自動再生ボタンの表示状態も確認
+                            const autoplayBtnActive = testWindow.document.getElementById('autoplay-btn').classList.contains('active');
+                            resultsEl.innerHTML += `自動再生ボタンの状態: ${autoplayBtnActive ? 'アクティブ' : '非アクティブ'}\n`;
+                            
+                            if (!autoplayBtnActive) {
+                                resultsEl.innerHTML += '<span class="success">✓ 自動再生ボタンが正しく非アクティブ表示になっています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ 自動再生ボタンがアクティブ表示になっています</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                }
+            ];
+            
+            // テストステップを順次実行
+            let totalDelay = 0;
+            testSteps.forEach(step => {
+                totalDelay += step.delay;
+                setTimeout(step.action, totalDelay);
+            });
+            
+            // 最後にテスト完了メッセージ
+            setTimeout(() => {
+                resultsEl.innerHTML += '\n--- テスト完了 ---\n';
+                resultsEl.innerHTML += '手動で確認：自動再生ボタンをクリックして正常に切り替わるか確認してください\n';
+            }, totalDelay + 1000);
+        });
+        
+        // プレゼンター画面の自動テスト
+        document.getElementById('test-presenter').addEventListener('click', function() {
+            const resultsEl = document.getElementById('presenter-results');
+            resultsEl.innerHTML = 'プレゼンター画面テストを開始...\n';
+            
+            // テスト用のウィンドウを開く
+            const testWindow = window.open('salesforce_slides01_presenter.html', 'test_presenter', 'width=1280,height=800');
+            
+            // テスト手順
+            const testSteps = [
+                // ウィンドウがロードされるまで待機
+                {
+                    delay: 3000,
+                    action: () => {
+                        resultsEl.innerHTML += '1. プレゼンター画面がロードされました\n';
+                    }
+                },
+                // スライド表示の確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            const slideImages = testWindow.document.querySelectorAll('.slide-image');
+                            resultsEl.innerHTML += `2. スライド画像要素数: ${slideImages.length}\n`;
+                            
+                            if (slideImages.length >= 1) {
+                                const imgSrc = slideImages[0].src;
+                                resultsEl.innerHTML += `現在のスライド画像: ${imgSrc.split('/').pop()}\n`;
+                                resultsEl.innerHTML += '<span class="success">✓ スライド画像が読み込まれています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ スライド画像が見つかりません</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                },
+                // スライド番号の確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            // 現在のスライド番号表示を確認
+                            const slideIndicator = testWindow.document.querySelector('.slide-counter');
+                            if (slideIndicator) {
+                                resultsEl.innerHTML += `3. スライド表示: ${slideIndicator.textContent}\n`;
+                                
+                                if (slideIndicator.textContent.includes('1 /')) {
+                                    resultsEl.innerHTML += '<span class="success">✓ スライド1が表示されています</span>\n';
+                                } else {
+                                    resultsEl.innerHTML += '<span class="failure">✗ スライド1が表示されていません</span>\n';
+                                }
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n';
+                        }
+                    }
+                },
+                // 自動再生状態の確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            const autoplayState = testWindow.autoplayMode;
+                            resultsEl.innerHTML += `4. 自動再生状態: ${autoplayState ? 'オン' : 'オフ'}\n`;
+                            
+                            if (!autoplayState) {
+                                resultsEl.innerHTML += '<span class="success">✓ 自動再生が正しくオフになっています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ 自動再生が初期状態でオンになっています</span>\n';
+                            }
+                            
+                            // 自動再生ボタンの表示状態も確認
+                            const autoplayBtnActive = testWindow.document.querySelector('.自動停止') !== null;
+                            resultsEl.innerHTML += `自動再生ボタンの状態: ${autoplayBtnActive ? 'アクティブ' : '非アクティブ'}\n`;
+                            
+                            if (!autoplayBtnActive) {
+                                resultsEl.innerHTML += '<span class="success">✓ 自動再生ボタンが非アクティブ表示になっています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ 自動再生ボタンがアクティブ表示になっています</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                }
+            ];
+            
+            // テストステップを順次実行
+            let totalDelay = 0;
+            testSteps.forEach(step => {
+                totalDelay += step.delay;
+                setTimeout(step.action, totalDelay);
+            });
+            
+            // 最後にテスト完了メッセージ
+            setTimeout(() => {
+                resultsEl.innerHTML += '\n--- テスト完了 ---\n';
+            }, totalDelay + 1000);
+        });
+        
+        // 自動再生検証テスト
+        document.getElementById('test-autoplay').addEventListener('click', function() {
+            const resultsEl = document.getElementById('autoplay-results');
+            resultsEl.innerHTML = '自動再生テストを開始...\n';
+            
+            // テスト用のウィンドウを開く
+            const testWindow = window.open('salesforce_slides01.html', 'test_autoplay', 'width=1024,height=768');
+            
+            // テスト手順
+            const testSteps = [
+                // ウィンドウがロードされるまで待機
+                {
+                    delay: 2000,
+                    action: () => {
+                        resultsEl.innerHTML += '1. プレゼンテーション画面がロードされました\n';
+                    }
+                },
+                // スライド1が正しく表示されているか確認
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            const currentSlide = testWindow.SlideshowCore.state.currentSlide;
+                            resultsEl.innerHTML += `2. 現在のスライド: ${currentSlide}\n`;
+                            
+                            if (currentSlide === 1) {
+                                resultsEl.innerHTML += '<span class="success">✓ スライド1が正しく表示されています</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ スライド1が表示されていません</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                },
+                // 自動再生を有効化
+                {
+                    delay: 1000,
+                    action: () => {
+                        try {
+                            resultsEl.innerHTML += '3. 自動再生を有効化します\n';
+                            
+                            // autoplayボタンをクリック
+                            const autoplayBtn = testWindow.document.getElementById('autoplay-btn');
+                            autoplayBtn.click();
+                            
+                            // 状態を確認
+                            const autoplayState = testWindow.SlideshowCore.state.autoplayEnabled;
+                            resultsEl.innerHTML += `自動再生状態: ${autoplayState ? '有効' : '無効'}\n`;
+                            
+                            if (autoplayState) {
+                                resultsEl.innerHTML += '<span class="success">✓ 自動再生が正しく有効化されました</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ 自動再生の有効化に失敗しました</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                    }
+                },
+                // スライド1から自動的に次へ進むか確認
+                {
+                    delay: 6000, // 6秒待機
+                    action: () => {
+                        try {
+                            const currentSlide = testWindow.SlideshowCore.state.currentSlide;
+                            resultsEl.innerHTML += `4. 6秒後の現在のスライド: ${currentSlide}\n`;
+                            
+                            if (currentSlide === 2) {
+                                resultsEl.innerHTML += '<span class="success">✓ スライド1が正しく自動再生でスライド2に進みました</span>\n';
+                            } else {
+                                resultsEl.innerHTML += '<span class="failure">✗ スライド1が自動再生で次に進みませんでした</span>\n';
+                            }
+                        } catch (e) {
+                            resultsEl.innerHTML += `<span class="failure">エラー: ${e.message}</span>\n`;
+                        }
+                        
+                        // テスト完了
+                        resultsEl.innerHTML += '\n--- テスト完了 ---\n';
+                    }
+                }
+            ];
+            
+            // テストステップを順次実行
+            let totalDelay = 0;
+            testSteps.forEach(step => {
+                totalDelay += step.delay;
+                setTimeout(step.action, totalDelay);
+            });
+            
+            // 15秒後にテストウィンドウを閉じる
+            setTimeout(() => {
+                testWindow.close();
+                resultsEl.innerHTML += '\nテストウィンドウを閉じました\n';
+            }, 15000);
+        });
+    </script>
+</body>
+</html>

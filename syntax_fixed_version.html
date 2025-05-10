@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修正版Salesforceスライド - 構文エラー修正版</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #0066cc;
+        }
+        .test-link {
+            display: block;
+            margin: 15px 0;
+            padding: 10px 15px;
+            background-color: #0066cc;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            width: fit-content;
+            font-weight: bold;
+        }
+        .test-link:hover {
+            background-color: #0052a3;
+        }
+        .note {
+            background-color: #ffffcc;
+            border-left: 4px solid #ffcc00;
+            padding: 10px 15px;
+            margin: 20px 0;
+        }
+        .error {
+            background-color: #ffeeee;
+            border-left: 4px solid #ff0000;
+            padding: 10px 15px;
+            margin: 20px 0;
+        }
+        .fixed {
+            background-color: #eeffee;
+            border-left: 4px solid #00cc00;
+            padding: 10px 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Salesforceスライド 構文エラー修正版</h1>
+    
+    <div class="error">
+        <h3>修正前の問題</h3>
+        <p>プレゼンテーションが正常に動作しない原因となっていた構文エラーがありました：</p>
+        <ul>
+            <li><code>SyntaxError: Missing catch or finally after try</code> - playCurrentAudio関数内の不完全なtry構文</li>
+            <li><code>SyntaxError: Unexpected end of input</code> - 閉じ括弧の不足</li>
+        </ul>
+    </div>
+    
+    <div class="fixed">
+        <h3>修正内容</h3>
+        <ul>
+            <li>playCurrentAudio関数の構文エラーを修正</li>
+            <li>不完全なtry-catch構造を正しく修正</li>
+            <li>すべての括弧を適切に閉じるように修正</li>
+            <li>エラー防止スクリプトを追加して強制的にローディング画面を終了するメカニズムを実装</li>
+        </ul>
+    </div>
+    
+    <p>以下のリンクをクリックして、修正されたSalesforceスライドプレゼンテーションを開いてください。</p>
+    
+    <a href="salesforce_slides01.html" class="test-link" target="_blank">修正版プレゼンテーションを開く</a>
+    
+    <div class="note">
+        <h3>確認事項</h3>
+        <ul>
+            <li>ロード画面が正常に表示され、その後プレゼンテーションが表示されること</li>
+            <li>スライド1の自動再生が正常に機能すること</li>
+            <li>音声が正常に再生されること</li>
+            <li>自動再生モードが正常に動作すること</li>
+        </ul>
+    </div>
+</body>
+</html>

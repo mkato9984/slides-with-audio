@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレゼンターモード - Salesforce スライド 01</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: grid;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #1a2530;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: white;
+        }
+        
+        .timer {
+            font-size: 22px;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .preview-container {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .preview-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .current-slide-preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .next-slide-preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .slide-image {
+            max-width: 100%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        
+        .next-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(52, 152, 219, 0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .notes-container {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .notes-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #3498db;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notes-content {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            flex-grow: 1;
+            min-height: 100px;
+        }
+        
+        .notes-textarea {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #ecf0f1;
+            resize: none;
+            border: 1px solid #3498db;
+            width: 100%;
+            font-family: inherit;
+            flex-grow: 1;
+            min-height: 100px;
+            display: none;
+        }
+        
+        .notes-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .note-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .note-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .note-btn.save {
+            background-color: #2ecc71;
+        }
+        
+        .note-btn.save:hover {
+            background-color: #27ae60;
+        }
+        
+        .note-btn.cancel {
+            background-color: #e74c3c;
+        }
+        
+        .note-btn.cancel:hover {
+            background-color: #c0392b;
+        }
+        
+        .controls {
+            background-color: #1a2530;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+        
+        .control-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: nowrap;
+            width: 100%;
+            flex-direction: row;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+            min-width: 80px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .slide-counter {
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            color: white;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            height: 5px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            width: 0;
+        }
+        
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+        
+        .audio-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .audio-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .audio-btn.active {
+            background-color: #2ecc71;
+        }
+        
+        .audio-btn.active:hover {
+            background-color: #27ae60;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: auto;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 2000;
+            animation: fadeInOut 3s ease-in-out;
+            pointer-events: none;
+            opacity: 0;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+
+        /* ローディングインジケーターのスタイル */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .progress-info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification">通知メッセージ</div>
+    
+    <!-- ローディングインジケーター -->
+    <div class="loading-container" id="loading-container">
+        <div class="spinner"></div>
+        <div>リソースを読み込み中...</div>
+        <div class="progress-info" id="progress-info">0/11 ロード完了</div>
+    </div>
+
+    <div class="header">
+        <h1>プレゼンター画面 - Salesforce スライド 01</h1>
+        <div class="timer" id="timer">00:00</div>
+    </div>
+    
+    <div class="main-content">
+        <div class="preview-container">
+            <div class="preview-header">現在のスライド</div>
+            <div class="current-slide-preview" id="current-slide-preview">
+                <img src="" alt="現在のスライド" class="slide-image" id="current-slide-image">
+            </div>
+        </div>
+        
+        <div class="preview-container">
+            <div class="preview-header">次のスライド</div>
+            <div class="next-slide-preview" id="next-slide-preview">
+                <div class="next-label">次</div>
+                <img src="" alt="次のスライド" class="slide-image" id="next-slide-image">
+            </div>
+        </div>
+        
+        <div class="notes-container">
+            <div class="notes-header">
+                <span>スライドノート</span>
+                <div class="notes-actions">
+                    <button id="edit-note-btn" class="note-btn">編集</button>
+                    <button id="save-note-btn" class="note-btn save" style="display:none;">保存</button>
+                    <button id="cancel-note-btn" class="note-btn cancel" style="display:none;">キャンセル</button>
+                </div>
+            </div>
+            <div class="notes-content" id="notes-content">
+                ノートが表示されます...
+            </div>
+            <textarea id="notes-textarea" class="notes-textarea" placeholder="スライドノートを入力してください..."></textarea>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-bar">
+            <button id="prev-btn" class="btn">前へ</button>
+            <button id="audio-btn" class="audio-btn">音声再生</button>
+            <button id="autoplay-btn" class="btn">自動再生</button>
+            <div id="slide-counter" class="slide-counter">1 / 11</div>
+            <button id="next-btn" class="btn">次へ</button>
+        </div>
+    </div>
+
+    <script>
+        // スライド関連の変数
+        const totalSlides = 11;
+        let currentSlide = 1;
+        let timerInterval;
+        let startTime;
+        let elapsedSeconds = 0;
+        let slideNotes = {};
+        let autoplayMode = false;
+        let audioPlaying = false;
+        let autoplayTimeout = null;
+        let resourcesLoaded = 0;
+        const totalResources = totalSlides * 2; // 画像とオーディオファイル
+        const preloadedImages = [];
+        const preloadedAudios = [];
+        
+        // DOM要素
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const timer = document.getElementById('timer');
+        const notesContent = document.getElementById('notes-content');
+        const currentSlideImage = document.getElementById('current-slide-image');
+        const nextSlideImage = document.getElementById('next-slide-image');
+        const autoplayBtn = document.getElementById('autoplay-btn');
+        const notification = document.getElementById('notification');
+        const audioBtn = document.getElementById('audio-btn');
+        const loadingContainer = document.getElementById('loading-container');
+        const progressInfo = document.getElementById('progress-info');
+        const editNoteBtn = document.getElementById('edit-note-btn');
+        const saveNoteBtn = document.getElementById('save-note-btn');
+        const cancelNoteBtn = document.getElementById('cancel-note-btn');
+        const notesTextarea = document.getElementById('notes-textarea');
+        
+        // 同期フラグ（内部変更を追跡するため）
+        let isInternalChange = false;
+        let syncInProgress = false;
+        let isTransitioning = false;
+        
+        // 初期化機能
+        window.addEventListener('DOMContentLoaded', () => {
+            // スライドのノートを読み込む
+            loadNotes();
+            
+            // ローカルストレージからスライド番号を取得して表示
+            const storedSlide = localStorage.getItem('sf01_currentSlide');
+            if (storedSlide) {
+                const slideNum = parseInt(storedSlide);
+                if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides) {
+                    currentSlide = slideNum;
+                }
+            }
+            
+            // 前のページ（メインウィンドウ）に現在画面が開いていることを通知
+            syncWithMainWindow();
+            
+            // ローカルストレージの変更を監視（メイン画面からの同期）
+            window.addEventListener('storage', (e) => {
+                if (syncInProgress) return; // 同期中は処理しない
+                
+                // スライド番号の変更
+                if (e.key === 'sf01_currentSlide') {
+                    const slideNum = parseInt(e.newValue);
+                    if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides && slideNum !== currentSlide) {
+                        currentSlide = slideNum;
+                        updatePresenterView();
+                        showNotification(`スライド ${currentSlide} に同期しました`);
+                    }
+                }
+                
+                // スライドノートの変更
+                else if (e.key === 'sf01_slideNotes') {
+                    try {
+                        const notes = JSON.parse(e.newValue);
+                        if (notes) {
+                            slideNotes = notes;
+                            displayNotes(currentSlide);
+                        }
+                    } catch (error) {
+                        console.error('ノートの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 拡張同期コマンドの処理
+                else if (e.key === 'sf01_syncCommand') {
+                    try {
+                        const syncData = JSON.parse(e.newValue);
+                        handleSyncCommand(syncData);
+                    } catch (error) {
+                        console.error('同期コマンドの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 音声コマンドの処理
+                else if (e.key === 'sf01_audioCommand') {
+                    try {
+                        const audioCommand = JSON.parse(e.newValue);
+                        handleAudioCommand(audioCommand);
+                    } catch (error) {
+                        console.error('音声コマンドの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 自動再生状態の同期
+                else if (e.key === 'sf01_autoplayState') {
+                    const state = e.newValue;
+                    updateAutoplayState(state);
+                }
+            });
+            
+            // ボタンイベントの設定
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 1) {
+                    changeSlide(currentSlide - 1);
+                }
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides) {
+                    changeSlide(currentSlide + 1);
+                }
+            });
+            
+            audioBtn.addEventListener('click', toggleAudio);
+            
+            autoplayBtn.addEventListener('click', toggleAutoplay);
+            
+            // ノート編集ボタンのイベント設定
+            editNoteBtn.addEventListener('click', startEditingNote);
+            saveNoteBtn.addEventListener('click', saveNote);
+            cancelNoteBtn.addEventListener('click', cancelEditingNote);
+            
+            // キーボードイベント
+            window.addEventListener('keydown', handleKeyDown);
+
+            // タッチスワイプの処理を追加
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            document.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50; // スワイプと判断する最小ピクセル数
+                
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // 左スワイプ → 次のスライド
+                    if (currentSlide < totalSlides && !isTransitioning) {
+                        changeSlide(currentSlide + 1);
+                    }
+                }
+                
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // 右スワイプ → 前のスライド
+                    if (currentSlide > 1 && !isTransitioning) {
+                        changeSlide(currentSlide - 1);
+                    }
+                }
+            }
+            
+            // 初期表示を更新
+            updatePresenterView();
+            startTimer();
+            preloadResources();
+        });
+
+        // プレゼンター画面の音声再生と同期処理を改善
+        function handleAudioCommand(command) {
+            if (!command) return;
+            
+            // 古いコマンドは無視（5秒以上前のコマンド）
+            if (command.timestamp && (Date.now() - command.timestamp > 5000)) {
+                return;
+            }
+            
+            // プレゼンター自身から送信されたコマンドは無視
+            if (command.source === 'presenter') {
+                return;
+            }
+            
+            if (command.action === 'play') {
+                if (command.slide !== undefined) {
+                    const slideNum = parseInt(command.slide);
+                    if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides) {
+                        // 実際は音声を再生せず、状態だけ同期
+                        audioBtn.textContent = '音声停止';
+                        audioBtn.classList.add('active');
+                        audioPlaying = true;
+                    }
+                }
+            } else if (command.action === 'stop') {
+                stopAudio();
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+                audioPlaying = false;
+            }
+        }        
+        
+        // オーディオの再生/停止を切り替え
+        function toggleAudio() {
+            if (audioPlaying) {
+                // 音声を停止
+                const wasAutoplayActive = autoplayMode;
+                stopAudio();
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+                audioPlaying = false;
+                
+                // メインウィンドウに音声停止の同期メッセージを送信
+                sendAudioCommand('stop');
+                
+                // 自動再生も停止された場合は通知を表示
+                if (wasAutoplayActive) {
+                    showNotification('音声と自動再生を停止しました');
+                } else {
+                    showNotification('音声を停止しました');
+                }
+            } else {
+                // このウィンドウが音声ソースであることをマーク
+                localStorage.setItem('sf01_audioSource', 'presenter');
+                
+                // 現在のスライドの音声を再生
+                playAudio(currentSlide);
+                audioBtn.textContent = '音声停止';
+                audioBtn.classList.add('active');
+                audioPlaying = true;
+                
+                // メインウィンドウに音声再生の同期メッセージを送信
+                sendAudioCommand('play', currentSlide);
+                showNotification('音声を再生します');
+            }
+        }        
+        
+        // 指定したスライドの音声を再生
+        function playAudio(slideNum) {
+            // 音声再生中の重複呼び出しを防止
+            if (window.isPlayingAudio) {
+                console.log('音声再生処理が既に進行中です');
+                return;
+            }
+            
+            window.isPlayingAudio = true;
+            
+            stopAudio();
+            
+            // 音声要素がなければ作成
+            if (!window.slideAudio) {
+                window.slideAudio = new Audio();
+            }
+            
+            // 音声ファイルのパスを適切に設定
+            let audioIndex = 0; // デフォルトは無音ファイル
+
+            if (slideNum === 1) {
+                // スライド1は無音ファイル0
+                audioIndex = 0;
+            } else if (slideNum >= 2 && slideNum <= 10) {
+                // スライド2～10には音声1～9を割り当て
+                audioIndex = slideNum - 1;
+            } else if (slideNum === 11) {
+                // スライド11は無音ファイル11
+                audioIndex = 11;
+            }
+            
+            const audioPath = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_${audioIndex}.wav`;
+            console.log(`再生する音声: スライド${slideNum} -> ${audioPath}`);
+            
+            // 音声要素に各種イベントリスナーを追加
+            window.slideAudio.onerror = (e) => {
+                console.error('音声再生エラー:', e);
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+                audioPlaying = false;
+                showNotification('音声の再生に失敗しました');
+                
+                // メイン画面にも同期
+                sendAudioCommand('stop');
+                window.isPlayingAudio = false;
+            };
+            
+            window.slideAudio.onended = () => {
+                console.log('音声再生終了');
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+                audioPlaying = false;
+                
+                // メイン画面にも同期
+                sendAudioCommand('stop');
+                
+                // 自動再生モードなら次のスライドへ
+                if (autoplayMode && currentSlide < totalSlides) {
+                    autoplayTimeout = setTimeout(() => {
+                        changeSlide(currentSlide + 1);
+                    }, 500); // 音声が終わってから少し間をあけて次へ
+                }
+                
+                window.isPlayingAudio = false;
+            };
+            
+            // 音声ファイルをソースに設定
+            window.slideAudio.src = audioPath;
+            window.slideAudio.volume = 1.0;
+            
+            // 再生を試みる
+            let playPromise;
+            try {
+                playPromise = window.slideAudio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        // 再生成功
+                        console.log('音声再生開始');
+                        window.isPlayingAudio = false;
+                    }).catch(error => {
+                        // 再生失敗
+                        console.error('音声再生に失敗しました:', error);
+                        
+                        // ユーザーインタラクションがないと自動再生できない場合
+                        if (error.name === 'NotAllowedError') {
+                            showNotification('ブラウザの制限により音声再生には操作が必要です。再生ボタンをクリックしてください。');
+                            // 音声ボタンを点滅させる代わりにスタイルを変更
+                            audioBtn.style.animation = 'pulse 1s infinite';
+                            setTimeout(() => {
+                                audioBtn.style.animation = '';
+                            }, 3000);
+                        } else {
+                            showNotification('音声の再生に失敗しました: ' + error.message);
+                        }
+                        
+                        audioBtn.textContent = '音声再生';
+                        audioBtn.classList.remove('active');
+                        audioPlaying = false;
+                        
+                        // メイン画面にも同期
+                        sendAudioCommand('stop');
+                        window.isPlayingAudio = false;
+                    });
+                } else {
+                    // Promiseが返されない場合（古いブラウザ）
+                    window.isPlayingAudio = false;
+                }
+            } catch (error) {
+                console.error('音声再生の実行中にエラーが発生しました:', error);
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+                audioPlaying = false;
+                sendAudioCommand('stop');
+                window.isPlayingAudio = false;
+                showNotification('音声の再生に失敗しました');
+            }
+        }        
+        
+        // 音声を停止する
+        function stopAudio() {
+            if (window.slideAudio) {
+                try {
+                    window.slideAudio.pause();
+                    // currentTimeが設定可能かどうかを確認
+                    if (window.slideAudio.readyState > 0) {
+                        window.slideAudio.currentTime = 0;
+                    }
+                    console.log('Audio stopped successfully');
+                    
+                    // 手動で音声を停止した場合、自動再生モードも停止する
+                    if (autoplayMode) {
+                        autoplayMode = false;
+                        autoplayBtn.textContent = '自動再生';
+                        autoplayBtn.classList.remove('active');
+                        clearTimeout(autoplayTimeout);
+                        
+                        // メインウィンドウにも自動再生モードの停止を同期
+                        localStorage.setItem('sf01_autoplayState', 'inactive');
+                        sendSyncCommand('autoplayStop');
+                        
+                        console.log('音声停止に伴い、自動再生モードを停止しました');
+                    }
+                } catch (e) {
+                    console.error('Error stopping audio:', e);
+                }
+            }
+        }
+
+        // プレゼンター画面を更新
+        function updatePresenterView() {
+            // スライドカウンターの更新
+            slideCounter.textContent = `${currentSlide} / ${totalSlides}`;
+            
+            // 現在のスライドと次のスライドのプレビュー画像を更新
+            currentSlideImage.src = `salesforce_slides/salesforce_slides01/slide${String(currentSlide).padStart(2, '0')}.png`;
+            
+            // 次のスライドのプレビューを更新
+            if (currentSlide < totalSlides) {
+                nextSlideImage.src = `salesforce_slides/salesforce_slides01/slide${String(currentSlide + 1).padStart(2, '0')}.png`;
+                nextSlideImage.style.display = 'block';
+                document.getElementById('next-slide-preview').querySelector('.next-label').style.display = 'block';
+            } else {
+                // 最後のスライドの場合は次のプレビューを非表示またはその他の処理
+                nextSlideImage.style.display = 'none';
+                document.getElementById('next-slide-preview').querySelector('.next-label').style.display = 'none';
+            }
+            
+            // ノートを表示
+            displayNotes(currentSlide);
+            
+            // ナビゲーションボタンの状態を更新
+            updateButtonState();
+        }
+
+        // 拡張同期コマンドを処理
+        function handleSyncCommand(syncData) {
+            if (!syncData) return;
+            
+            // タイムスタンプが古すぎる場合は処理しない（5秒以上前のコマンド）
+            const now = Date.now();
+            if (syncData.timestamp && (now - syncData.timestamp > 5000)) {
+                return;
+            }
+            
+            // スライド番号の同期
+            if (syncData.slide !== undefined) {
+                const slideNum = parseInt(syncData.slide);
+                if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides && slideNum !== currentSlide) {
+                    currentSlide = slideNum;
+                    updatePresenterView();
+                }
+            }
+            
+            // 自動再生状態の同期
+            if (syncData.action === 'autoplay') {
+                updateAutoplayState(syncData.state);
+            }
+            
+            // 音声状態の同期
+            if (syncData.audioAction) {
+                handleAudioCommand({
+                    action: syncData.audioAction,
+                    slide: syncData.slide
+                });            
+            }
+        }          
+        
+        // 自動再生の切り替え
+        function toggleAutoplay() {
+            // 連続クリック時に処理が重複しないようロック
+            if (window.isTogglingAutoplay) {
+                console.log('自動再生の切り替え処理が進行中です...');
+                return;
+            }
+            
+            window.isTogglingAutoplay = true;
+            
+            // 自動再生状態を切り替え
+            autoplayMode = !autoplayMode;
+            
+            if (autoplayMode) {
+                autoplayBtn.textContent = '自動停止';
+                autoplayBtn.classList.add('active');
+                showNotification('自動再生モードを開始しました');
+                
+                // このウィンドウが音声/自動再生ソースであることをマーク
+                localStorage.setItem('sf01_audioSource', 'presenter');
+                
+                // 現在の音声が再生中でなければ再生を開始
+                if (!audioPlaying) {
+                    // わずかな遅延を入れて処理の安定化
+                    setTimeout(() => {
+                        // 音声を再生
+                        playAudio(currentSlide);
+                        audioBtn.textContent = '音声停止';
+                        audioBtn.classList.add('active');
+                        audioPlaying = true;
+                        
+                        // メインウィンドウに音声再生の同期メッセージも送信
+                        sendAudioCommand('play', currentSlide);
+                    }, 100);
+                }
+            } else {
+                autoplayBtn.textContent = '自動再生';
+                autoplayBtn.classList.remove('active');
+                showNotification('自動再生モードを停止しました');
+                
+                // タイムアウトをクリア
+                if (autoplayTimeout) {
+                    clearTimeout(autoplayTimeout);
+                    autoplayTimeout = null;
+                }
+                
+                // 音声も停止する
+                if (audioPlaying) {
+                    stopAudio();
+                    audioBtn.textContent = '音声再生';
+                    audioBtn.classList.remove('active');
+                    audioPlaying = false;
+                    
+                    // メインウィンドウに音声停止の同期メッセージを送信
+                    sendAudioCommand('stop');
+                }
+            }
+            
+            // メインウィンドウに自動再生状態を同期
+            localStorage.setItem('sf01_autoplayState', autoplayMode ? 'active' : 'inactive');
+            
+            // 同期コマンドを送信
+            sendSyncCommand(autoplayMode ? 'autoplayStart' : 'autoplayStop');
+            
+            // さらに確実にするためにメイン側のsf01_syncCommandキーにも書き込む
+            // 小さな遅延を入れて同期の競合を防止
+            setTimeout(() => {
+                try {
+                    const command = autoplayMode ? 'autoplayStart' : 'autoplayStop';
+                    const syncData = {
+                        command: command,
+                        data: {},
+                        source: 'presenter',
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('sf01_syncCommand', JSON.stringify(syncData));
+                } catch (error) {
+                    console.error('同期コマンドの送信に失敗しました:', error);
+                }
+                
+                // ロック解除
+                window.isTogglingAutoplay = false;
+            }, 200);
+        }
+
+        // 自動再生状態を更新
+        function updateAutoplayState(state) {
+            const newState = state === 'active';
+            
+            // 状態が変わる場合のみ処理
+            if (autoplayMode !== newState) {
+                autoplayMode = newState;
+                
+                if (autoplayMode) {
+                    autoplayBtn.textContent = '自動停止';
+                    autoplayBtn.classList.add('active');
+                    
+                    // メイン画面から自動再生が開始された場合、音声を再生しない
+                    // (メイン画面が音声を担当するため)
+                    if (localStorage.getItem('sf01_audioSource') === 'main') {
+                        audioBtn.textContent = '音声停止';
+                        audioBtn.classList.add('active');
+                        audioPlaying = true;
+                    }
+                } else {
+                    autoplayBtn.textContent = '自動再生';
+                    autoplayBtn.classList.remove('active');
+                    clearTimeout(autoplayTimeout);
+                }
+                
+                console.log(`自動再生状態を更新: ${autoplayMode ? '開始' : '停止'}`);
+            }
+        }
+
+        // スライドを変更
+        function changeSlide(newSlide) {
+            if (isTransitioning) return;
+            
+            isTransitioning = true;
+            
+            if (newSlide < 1) newSlide = 1;
+            if (newSlide > totalSlides) newSlide = totalSlides;
+            
+            // 自動再生モード中は音声を停止してから次の音声を再生
+            if (autoplayMode && audioPlaying) {
+                stopAudio();
+                audioPlaying = false;
+            }
+            
+            currentSlide = newSlide;
+            
+            // ローカルストレージに現在のスライド番号を保存
+            localStorage.setItem('sf01_currentSlide', currentSlide);
+            
+            // 表示を更新
+            updatePresenterView();
+            
+            // 自動再生モード中は新しいスライドの音声を再生
+            if (autoplayMode) {
+                setTimeout(() => {
+                    playAudio(currentSlide);
+                    audioBtn.textContent = '音声停止';
+                    audioBtn.classList.add('active');
+                    audioPlaying = true;
+                    
+                    // メインウィンドウに音声再生の同期メッセージを送信
+                    sendAudioCommand('play', currentSlide);
+                }, 500);
+            }
+            
+            setTimeout(() => {
+                isTransitioning = false;
+            }, 500);
+        }
+
+        // メインウィンドウとの同期
+        function syncWithMainWindow() {
+            syncInProgress = true;
+            
+            // プレゼンター画面が開いていることを通知
+            localStorage.setItem('sf01_presenterConnected', 'true');
+            
+            // 現在のスライド番号を同期
+            localStorage.setItem('sf01_currentSlide', currentSlide);
+            
+            setTimeout(() => {
+                syncInProgress = false;
+            }, 100);
+        }
+
+        // 同期コマンドの送信（LocalStorage使用）
+        function sendSyncCommand(command, data) {
+            const syncData = {
+                command: command,
+                data: data || {},
+                timestamp: new Date().getTime(),
+                source: 'presenter'
+            };
+            
+            try {
+                syncInProgress = true;
+                localStorage.setItem('sf01_syncCommandFromPresenter', JSON.stringify(syncData));
+                setTimeout(() => { syncInProgress = false; }, 100);
+            } catch (error) {
+                console.error('同期コマンドの送信に失敗しました:', error);
+                syncInProgress = false;
+            }
+        }        
+        
+        // 音声コマンドの送信
+        function sendAudioCommand(action, slide) {
+            // 同期コマンドをメインウィンドウに送信
+            const audioCommand = {
+                action: action,
+                slide: slide || currentSlide,
+                source: 'presenter',
+                timestamp: Date.now()
+            };
+            
+            try {
+                localStorage.setItem('sf01_audioCommandFromPresenter', JSON.stringify(audioCommand));
+                // オーディオ同期の信頼性を高めるため、同期コマンドも送信
+                sendSyncCommand(action === 'play' ? 'audioPlay' : 'audioStop', { slide: slide || currentSlide });
+            } catch (error) {
+                console.error('音声コマンドの送信に失敗しました:', error);
+            }
+        }
+
+        // ボタン状態の更新
+        function updateButtonState() {
+            prevBtn.disabled = currentSlide <= 1;
+            nextBtn.disabled = currentSlide >= totalSlides;
+        }
+
+        // スライドノートを表示
+        function displayNotes(slideNum) {
+            const noteKey = `slide_${slideNum}`;
+            if (slideNotes && slideNotes[noteKey]) {
+                notesContent.textContent = slideNotes[noteKey];
+            } else {
+                notesContent.textContent = 'このスライドにはノートがありません。';
+            }
+        }
+
+        // ノート編集を開始
+        function startEditingNote() {
+            const noteKey = `slide_${currentSlide}`;
+            notesTextarea.value = slideNotes[noteKey] || '';
+            
+            notesContent.style.display = 'none';
+            notesTextarea.style.display = 'block';
+            
+            editNoteBtn.style.display = 'none';
+            saveNoteBtn.style.display = 'inline-block';
+            cancelNoteBtn.style.display = 'inline-block';
+            
+            notesTextarea.focus();
+        }
+
+        // ノートを保存
+        function saveNote() {
+            const noteKey = `slide_${currentSlide}`;
+            const noteText = notesTextarea.value.trim();
+            
+            if (noteText) {
+                slideNotes[noteKey] = noteText;
+            } else {
+                delete slideNotes[noteKey];
+            }
+            
+            // ローカルストレージにノートを保存
+            localStorage.setItem('sf01_slideNotes', JSON.stringify(slideNotes));
+            
+            notesContent.textContent = noteText || 'このスライドにはノートがありません。';
+            
+            notesContent.style.display = 'block';
+            notesTextarea.style.display = 'none';
+            
+            editNoteBtn.style.display = 'inline-block';
+            saveNoteBtn.style.display = 'none';
+            cancelNoteBtn.style.display = 'none';
+            
+            // 保存成功の通知
+            showNotification('ノートを保存しました');
+        }
+
+        // ノート編集をキャンセル
+        function cancelEditingNote() {
+            notesContent.style.display = 'block';
+            notesTextarea.style.display = 'none';
+            
+            editNoteBtn.style.display = 'inline-block';
+            saveNoteBtn.style.display = 'none';
+            cancelNoteBtn.style.display = 'none';
+        }
+
+        // キーボードイベント処理
+        function handleKeyDown(e) {
+            if (e.target.tagName.toLowerCase() === 'textarea') {
+                // テキストエリア内でのキー入力は処理しない
+                return;
+            }
+            
+            switch (e.key) {
+                case 'ArrowLeft':
+                case 'PageUp':
+                    if (currentSlide > 1 && !isTransitioning) {
+                        changeSlide(currentSlide - 1);
+                    }
+                    break;
+                    
+                case 'ArrowRight':
+                case 'PageDown':
+                case ' ':
+                    if (currentSlide < totalSlides && !isTransitioning) {
+                        changeSlide(currentSlide + 1);
+                    }
+                    break;
+                    
+                case 'Home':
+                    if (!isTransitioning) {
+                        changeSlide(1);
+                    }
+                    break;
+                    
+                case 'End':
+                    if (!isTransitioning) {
+                        changeSlide(totalSlides);
+                    }
+                    break;
+                    
+                case 'a':
+                    toggleAutoplay();
+                    break;
+                    
+                case 'p':
+                    toggleAudio();
+                    break;
+            }
+        }
+
+        // タイマーを開始
+        function startTimer() {
+            startTime = Date.now() - (elapsedSeconds * 1000);
+            
+            timerInterval = setInterval(() => {
+                const now = Date.now();
+                elapsedSeconds = Math.floor((now - startTime) / 1000);
+                
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                
+                timer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // ノートを読み込み
+        function loadNotes() {
+            const savedNotes = localStorage.getItem('sf01_slideNotes');
+            if (savedNotes) {
+                try {
+                    slideNotes = JSON.parse(savedNotes);
+                } catch (error) {
+                    console.error('ノートの読み込みに失敗しました:', error);
+                    slideNotes = {};
+                }
+            } else {
+                slideNotes = {};
+            }
+        }
+
+        // リソースを事前ロード
+        function preloadResources() {
+            // 画像とオーディオをプリロード
+            for (let i = 1; i <= totalSlides; i++) {
+                // 画像をプリロード
+                const img = new Image();
+                img.onload = () => updateLoadingProgress();
+                img.onerror = () => updateLoadingProgress();
+                img.src = `salesforce_slides/salesforce_slides01/slide${String(i).padStart(2, '0')}.png`;
+                preloadedImages.push(img);
+                
+                // オーディオをプリロード
+                const audio = new Audio();
+                audio.oncanplaythrough = () => updateLoadingProgress();
+                audio.onerror = () => updateLoadingProgress();
+                audio.src = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_${i}.wav`;
+                audio.preload = 'auto';
+                preloadedAudios.push(audio);
+            }
+        }
+
+        // ローディングの進捗を更新
+        function updateLoadingProgress() {
+            resourcesLoaded++;
+            progressInfo.textContent = `${resourcesLoaded}/${totalResources} ロード完了`;
+            
+            if (resourcesLoaded >= totalResources) {
+                // すべてのリソースがロードされたらローディング画面を非表示
+                setTimeout(() => {
+                    loadingContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingContainer.style.display = 'none';
+                    }, 500);
+                }, 500);
+            }
+        }
+
+        // ボタンを点滅させるユーティリティ関数
+        function pulseElement(element) {
+            if (!element) return;
+            
+            // アニメーションクラスを追加
+            element.style.animation = 'pulse 1s infinite';
+            
+            // 3秒後にアニメーションを停止
+            setTimeout(() => {
+                element.style.animation = '';
+            }, 3000);
+        }
+
+        // 通知を表示
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

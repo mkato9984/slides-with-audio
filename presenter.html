@@ -111,17 +111,12 @@
             padding: 20px;
             margin-top: 20px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
         }
         
         .notes-header {
             font-size: 18px;
             margin-bottom: 10px;
             color: #3498db;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
         .notes-content {
@@ -131,60 +126,6 @@
             font-size: 16px;
             line-height: 1.6;
             white-space: pre-wrap;
-            flex-grow: 1;
-            min-height: 100px;
-        }
-        
-        .notes-textarea {
-            background-color: rgba(255, 255, 255, 0.2);
-            padding: 15px;
-            border-radius: 5px;
-            font-size: 16px;
-            line-height: 1.6;
-            color: #ecf0f1;
-            resize: none;
-            border: 1px solid #3498db;
-            width: 100%;
-            font-family: inherit;
-            flex-grow: 1;
-            min-height: 100px;
-            display: none;
-        }
-        
-        .notes-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .note-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s ease;
-        }
-        
-        .note-btn:hover {
-            background-color: #2980b9;
-        }
-        
-        .note-btn.save {
-            background-color: #2ecc71;
-        }
-        
-        .note-btn.save:hover {
-            background-color: #27ae60;
-        }
-        
-        .note-btn.cancel {
-            background-color: #e74c3c;
-        }
-        
-        .note-btn.cancel:hover {
-            background-color: #c0392b;
         }
         
         .controls {
@@ -297,54 +238,11 @@
             0%, 100% { opacity: 0; }
             10%, 90% { opacity: 1; }
         }
-
-        /* ローディングインジケーターのスタイル */
-        .loading-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            font-size: 18px;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 20px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .progress-info {
-            margin-top: 10px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
     <div class="notification" id="notification">通知メッセージ</div>
     
-    <!-- ローディングインジケーター -->
-    <div class="loading-container" id="loading-container">
-        <div class="spinner"></div>
-        <div>リソースを読み込み中...</div>
-        <div class="progress-info" id="progress-info">0/12 ロード完了</div>
-    </div>
-
     <div class="header">
         <h1>プレゼンター画面</h1>
         <div class="timer" id="timer">00:00</div>
@@ -367,18 +265,10 @@
         </div>
         
         <div class="notes-container">
-            <div class="notes-header">
-                <span>スライドノート</span>
-                <div class="notes-actions">
-                    <button id="edit-note-btn" class="note-btn">編集</button>
-                    <button id="save-note-btn" class="note-btn save" style="display:none;">保存</button>
-                    <button id="cancel-note-btn" class="note-btn cancel" style="display:none;">キャンセル</button>
-                </div>
-            </div>
+            <div class="notes-header">スライドノート</div>
             <div class="notes-content" id="notes-content">
                 ノートが表示されます...
             </div>
-            <textarea id="notes-textarea" class="notes-textarea" placeholder="スライドノートを入力してください..."></textarea>
         </div>
     </div>
     
@@ -404,10 +294,6 @@
         let autoplayMode = false;
         let audioPlaying = false;
         let autoplayTimeout = null;
-        let resourcesLoaded = 0;
-        const totalResources = totalSlides * 2; // 画像とオーディオファイル
-        const preloadedImages = [];
-        const preloadedAudios = [];
         
         // DOM要素
         const prevBtn = document.getElementById('prev-btn');
@@ -421,17 +307,10 @@
         const syncBtn = document.getElementById('sync-btn');
         const notification = document.getElementById('notification');
         const audioBtn = document.getElementById('audio-btn');
-        const loadingContainer = document.getElementById('loading-container');
-        const progressInfo = document.getElementById('progress-info');
-        const editNoteBtn = document.getElementById('edit-note-btn');
-        const saveNoteBtn = document.getElementById('save-note-btn');
-        const cancelNoteBtn = document.getElementById('cancel-note-btn');
-        const notesTextarea = document.getElementById('notes-textarea');
         
         // 同期フラグ（内部変更を追跡するため）
         let isInternalChange = false;
         let syncInProgress = false;
-        let isTransitioning = false;
         
         // 初期化機能
         window.addEventListener('DOMContentLoaded', () => {
@@ -526,49 +405,12 @@
                 showNotification('同期リクエストを送信しました');
             });
             
-            // ノート編集ボタンのイベント設定
-            editNoteBtn.addEventListener('click', startEditingNote);
-            saveNoteBtn.addEventListener('click', saveNote);
-            cancelNoteBtn.addEventListener('click', cancelEditingNote);
-            
             // キーボードイベント
             window.addEventListener('keydown', handleKeyDown);
-
-            // タッチスワイプの処理を追加
-            let touchStartX = 0;
-            let touchEndX = 0;
-            
-            document.addEventListener('touchstart', e => {
-                touchStartX = e.changedTouches[0].screenX;
-            });
-            
-            document.addEventListener('touchend', e => {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            });
-            
-            function handleSwipe() {
-                const swipeThreshold = 50; // スワイプと判断する最小ピクセル数
-                
-                if (touchEndX < touchStartX - swipeThreshold) {
-                    // 左スワイプ → 次のスライド
-                    if (currentSlide < totalSlides && !isTransitioning) {
-                        changeSlide(currentSlide + 1);
-                    }
-                }
-                
-                if (touchEndX > touchStartX + swipeThreshold) {
-                    // 右スワイプ → 前のスライド
-                    if (currentSlide > 1 && !isTransitioning) {
-                        changeSlide(currentSlide - 1);
-                    }
-                }
-            }
             
             // 初期表示を更新
             updatePresenterView();
             startTimer();
-            preloadResources();
         });
 
         // プレゼンタービューを更新
@@ -795,67 +637,9 @@
             
             if (notes && notes.trim()) {
                 notesContent.textContent = notes;
-                notesTextarea.value = notes;
             } else {
                 notesContent.textContent = 'このスライドにはノートがありません。';
-                notesTextarea.value = '';
             }
-        }
-        
-        // ノートの編集モードを開始
-        function startEditingNote() {
-            notesContent.style.display = 'none';
-            notesTextarea.style.display = 'block';
-            editNoteBtn.style.display = 'none';
-            saveNoteBtn.style.display = 'inline-block';
-            cancelNoteBtn.style.display = 'inline-block';
-            
-            // 現在のノートをテキストエリアにセット
-            const notes = slideNotes[currentSlide] || '';
-            notesTextarea.value = notes;
-            notesTextarea.focus();
-        }
-        
-        // ノートを保存
-        function saveNote() {
-            const noteText = notesTextarea.value.trim();
-            
-            // スライドノートを更新
-            if (!slideNotes) {
-                slideNotes = {};
-            }
-            
-            slideNotes[currentSlide] = noteText;
-            
-            // LocalStorageに保存
-            try {
-                localStorage.setItem('slideNotes', JSON.stringify(slideNotes));
-                showNotification('ノートを保存しました');
-            } catch (error) {
-                console.error('ノートの保存に失敗しました:', error);
-                showNotification('ノートの保存に失敗しました');
-            }
-            
-            // 編集モードを終了
-            exitEditMode();
-            
-            // 表示を更新
-            displayNotes(currentSlide);
-        }
-        
-        // ノート編集をキャンセル
-        function cancelEditingNote() {
-            exitEditMode();
-            showNotification('編集をキャンセルしました');
-        }
-        
-        // 編集モードを終了
-        function exitEditMode() {
-            notesContent.style.display = 'block';
-            notesTextarea.style.display = 'none';
-            editNoteBtn.style.display = 'inline-block';
-            saveNoteBtn.style.display = 'none';
-            cancelNoteBtn.style.display = 'none';
         }
         
         // 通知を表示
@@ -933,59 +717,6 @@
                 showNotification('同期リクエストを送信しました');
                 e.preventDefault();
             }
-        }
-
-        // リソースをプリロード
-        function preloadResources() {
-            // 画像のプリロード
-            for (let i = 1; i <= totalSlides; i++) {
-                const img = new Image();
-                img.src = `images/slide_${i}.png`;
-                img.onload = resourceLoaded;
-                img.onerror = resourceError;
-                preloadedImages.push(img);
-            }
-            
-            // 音声のプリロード
-            for (let i = 1; i <= totalSlides; i++) {
-                const audio = new Audio(`audio/audio_${i}.wav`);
-                audio.preload = 'auto';
-                
-                // 音声の読み込み追跡
-                audio.addEventListener('canplaythrough', resourceLoaded);
-                audio.addEventListener('error', resourceError);
-                
-                preloadedAudios.push(audio);
-            }
-        }
-        
-        // リソースがロードされたときの処理
-        function resourceLoaded() {
-            resourcesLoaded++;
-            updateLoadingProgress();
-            
-            // すべてのリソースがロードされたら表示
-            if (resourcesLoaded >= totalResources) {
-                setTimeout(() => {
-                    loadingContainer.style.opacity = 0;
-                    setTimeout(() => {
-                        loadingContainer.style.display = 'none';
-                    }, 500);
-                }, 500);
-            }
-        }
-        
-        // リソースロードエラー時の処理
-        function resourceError() {
-            resourcesLoaded++;
-            updateLoadingProgress();
-            showNotification('一部のリソースの読み込みに失敗しました');
-        }
-        
-        // ローディングプログレスを更新
-        function updateLoadingProgress() {
-            const percent = Math.round((resourcesLoaded / totalResources) * 100);
-            progressInfo.textContent = `${resourcesLoaded}/${totalResources} ロード完了 (${percent}%)`;
         }
     </script>
 </body>

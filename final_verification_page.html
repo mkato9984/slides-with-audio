@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforceスライド修正確認ページ</title>
+    <style>
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            margin: 20px;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        h1 {
+            color: #0066cc;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+        
+        .test-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 20px 0;
+            padding: 20px;
+            border-left: 5px solid #0066cc;
+        }
+        
+        h2 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        
+        .test-steps {
+            margin-left: 20px;
+        }
+        
+        .test-steps li {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .button-row {
+            margin: 20px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .test-button {
+            padding: 10px 20px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .test-button:hover {
+            background-color: #004c99;
+        }
+        
+        .result-box {
+            background-color: #f0f8ff;
+            border: 1px solid #b8daff;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            min-height: 100px;
+        }
+        
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        
+        .failure {
+            color: red;
+            font-weight: bold;
+        }
+        
+        .note {
+            background-color: #fffde7;
+            border-left: 5px solid #ffd54f;
+            padding: 10px;
+            margin: 20px 0;
+        }
+        
+        code {
+            background-color: #f5f5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Salesforceスライド修正検証ページ</h1>
+    
+    <div class="note">
+        <p>このページでは、Salesforceプレゼンテーションスライドに適用された修正内容を確認できます。各テストセクションの手順に従って機能を検証してください。</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>1. 自動再生機能の初期状態テスト</h2>
+        <p>自動再生が初期状態で必ず「オフ」になっているかを確認します。</p>
+        
+        <div class="test-steps">
+            <ol>
+                <li>以下の「メインスライドを開く」ボタンをクリックして新しいウィンドウでメインスライドを開きます。</li>
+                <li>自動再生ボタンの初期状態を確認します（「自動再生」と表示されており、オフの状態であることを確認）。</li>
+                <li>ブラウザの再読み込みを行い、再度自動再生が「オフ」で開始されることを確認します。</li>
+                <li>自動再生ボタンをクリックして「オン」にした後、再度ブラウザを更新し、「オフ」から始まることを確認します（状態が保存されないことを確認）。</li>
+            </ol>
+        </div>
+        
+        <div class="button-row">
+            <button class="test-button" onclick="window.open('salesforce_slides01.html', '_blank')">メインスライドを開く</button>
+        </div>
+        
+        <div class="result-box">
+            <h3>結果記録:</h3>
+            <p>自動再生初期状態: <span id="autoplay-result">未テスト</span></p>
+            <button class="test-button" onclick="document.getElementById('autoplay-result').innerHTML = '<span class=\'success\'>成功 - 常にオフで開始</span>'">成功</button>
+            <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('autoplay-result').innerHTML = '<span class=\'failure\'>失敗 - 自動再生がオンで開始</span>'">失敗</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. プレゼンタービューのボタン機能テスト</h2>
+        <p>プレゼンタービューで各ボタンが正しく機能するか確認します。</p>
+        
+        <div class="test-steps">
+            <ol>
+                <li>以下の「プレゼンタービューを開く」ボタンをクリックして新しいウィンドウでプレゼンタービューを開きます。</li>
+                <li>次のボタンをクリックして、反応があるか確認します：
+                    <ul>
+                        <li>前へ / 次へ ボタン</li>
+                        <li>自動再生ボタン</li>
+                        <li>同期ボタン</li>
+                        <li>音声ボタン（ある場合）</li>
+                    </ul>
+                </li>
+                <li>各ボタンをクリックした際に適切な動作があるか確認します。</li>
+            </ol>
+        </div>
+        
+        <div class="button-row">
+            <button class="test-button" onclick="window.open('salesforce_slides01_presenter.html', '_blank')">プレゼンタービューを開く</button>
+        </div>
+        
+        <div class="result-box">
+            <h3>結果記録:</h3>
+            <p>前へ/次へボタン: <span id="nav-buttons-result">未テスト</span></p>
+            <p>自動再生ボタン: <span id="auto-button-result">未テスト</span></p>
+            <p>同期ボタン: <span id="sync-button-result">未テスト</span></p>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('nav-buttons-result').innerHTML = '<span class=\'success\'>成功</span>'">前へ/次へ成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('nav-buttons-result').innerHTML = '<span class=\'failure\'>失敗</span>'">前へ/次へ失敗</button>
+            </div>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('auto-button-result').innerHTML = '<span class=\'success\'>成功</span>'">自動再生成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('auto-button-result').innerHTML = '<span class=\'failure\'>失敗</span>'">自動再生失敗</button>
+            </div>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('sync-button-result').innerHTML = '<span class=\'success\'>成功</span>'">同期成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('sync-button-result').innerHTML = '<span class=\'failure\'>失敗</span>'">同期失敗</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. 同期機能テスト</h2>
+        <p>メイン画面とプレゼンタービュー間の同期機能をテストします。</p>
+        
+        <div class="test-steps">
+            <ol>
+                <li>メインスライドとプレゼンタービューの両方を別々のウィンドウで開きます。</li>
+                <li>プレゼンタービューで「次へ」ボタンをクリックし、メイン画面も更新されるか確認します。</li>
+                <li>プレゼンタービューで「同期」ボタンをクリックし、両方の画面が同じスライドになるか確認します。</li>
+                <li>プレゼンタービューで自動再生をオンにし、メイン画面も自動再生が開始されるか確認します。</li>
+            </ol>
+        </div>
+        
+        <div class="button-row">
+            <button class="test-button" onclick="window.open('salesforce_slides01.html', '_blank')">メインスライドを開く</button>
+            <button class="test-button" onclick="window.open('salesforce_slides01_presenter.html', '_blank')">プレゼンタービューを開く</button>
+        </div>
+        
+        <div class="result-box">
+            <h3>結果記録:</h3>
+            <p>スライド変更同期: <span id="slide-sync-result">未テスト</span></p>
+            <p>自動再生同期: <span id="autoplay-sync-result">未テスト</span></p>
+            <p>同期ボタン動作: <span id="sync-button-action-result">未テスト</span></p>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('slide-sync-result').innerHTML = '<span class=\'success\'>成功</span>'">スライド同期成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('slide-sync-result').innerHTML = '<span class=\'failure\'>失敗</span>'">スライド同期失敗</button>
+            </div>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('autoplay-sync-result').innerHTML = '<span class=\'success\'>成功</span>'">自動再生同期成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('autoplay-sync-result').innerHTML = '<span class=\'failure\'>失敗</span>'">自動再生同期失敗</button>
+            </div>
+            
+            <div class="button-row">
+                <button class="test-button" onclick="document.getElementById('sync-button-action-result').innerHTML = '<span class=\'success\'>成功</span>'">同期ボタン成功</button>
+                <button class="test-button" style="background-color: #cc0000;" onclick="document.getElementById('sync-button-action-result').innerHTML = '<span class=\'failure\'>失敗</span>'">同期ボタン失敗</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="note">
+        <h3>トラブルシューティング:</h3>
+        <p>いずれかのテストが失敗した場合は、以下を確認してください：</p>
+        <ol>
+            <li>ブラウザのコンソールにエラーが表示されていないか確認（F12キーを押してデベロッパーツールを開き、Consoleタブを選択）</li>
+            <li>すべての修正スクリプト（<code>autoplay-enhanced-fix.js</code>, <code>presenter-buttons-fix.js</code>, <code>sync-enhanced-fix.js</code>）がプロジェクトフォルダに存在するか確認</li>
+            <li>HTML内で正しくスクリプトが読み込まれているか確認</li>
+            <li>LocalStorageをクリアしてみる（ブラウザの開発者ツールのApplicationタブからLocalStorageを削除）</li>
+        </ol>
+    </div>
+    
+    <script>
+        // 検証ページ用スクリプト
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Salesforceスライド検証ページが読み込まれました');
+        });
+    </script>
+</body>
+</html>

@@ -91,52 +91,9 @@
         .notification.show {
             opacity: 1;
         }
-
-        /* ローディングインジケーターのスタイル */
-        .loading-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            font-size: 18px;
-        }
-        
-        .spinner {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 20px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        .progress-info {
-            margin-top: 10px;
-            font-size: 14px;
-        }
     </style>
 </head>
 <body>
-    <!-- ローディングインジケーター -->
-    <div class="loading-container" id="loading-container">
-        <div class="spinner"></div>
-        <div>リソースを読み込み中...</div>
-        <div class="progress-info" id="progress-info">0/12 ロード完了</div>
-    </div>
-
     <div class="slide-container" id="slide-container">
         <!-- スライド画像はJSで挿入されます -->
     </div>
@@ -161,13 +118,7 @@
         let currentAudio = null;
         let isTransitioning = false;
         
-        // リソースのロード状態を追跡
-        let resourcesLoaded = 0;
-        const totalResources = totalSlides * 2; // 画像とオーディオファイル
-        
         // DOM要素
-        const loadingContainer = document.getElementById('loading-container');
-        const progressInfo = document.getElementById('progress-info');
         const slideContainer = document.getElementById('slide-container');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -292,8 +243,6 @@
             for (let i = 1; i <= totalSlides; i++) {
                 const img = new Image();
                 img.src = `images/slide_${i}.png`;
-                img.onload = resourceLoaded;
-                img.onerror = resourceError;
                 preloadedImages.push(img);
             }
             
@@ -301,10 +250,6 @@
             for (let i = 1; i <= totalSlides; i++) {
                 const audio = new Audio(`audio/audio_${i}.wav`);
                 audio.preload = 'auto';
-                
-                // 音声の読み込み追跡
-                audio.addEventListener('canplaythrough', resourceLoaded);
-                audio.addEventListener('error', resourceError);
                 
                 // 音声終了時のイベントを設定
                 audio.addEventListener('ended', function() {
@@ -325,35 +270,6 @@
                 
                 preloadedAudios.push(audio);
             }
-        }
-        
-        // リソースがロードされたときの処理
-        function resourceLoaded() {
-            resourcesLoaded++;
-            updateLoadingProgress();
-            
-            // すべてのリソースがロードされたら表示
-            if (resourcesLoaded >= totalResources) {
-                setTimeout(() => {
-                    loadingContainer.style.opacity = 0;
-                    setTimeout(() => {
-                        loadingContainer.style.display = 'none';
-                    }, 500);
-                }, 500);
-            }
-        }
-        
-        // リソースロードエラー時の処理
-        function resourceError() {
-            resourcesLoaded++;
-            updateLoadingProgress();
-            showNotification('一部のリソースの読み込みに失敗しました');
-        }
-        
-        // ローディングプログレスを更新
-        function updateLoadingProgress() {
-            const percent = Math.round((resourcesLoaded / totalResources) * 100);
-            progressInfo.textContent = `${resourcesLoaded}/${totalResources} ロード完了 (${percent}%)`;
         }
 
         // スライドを初期化
@@ -667,46 +583,6 @@
             }
         }
         
-        // プレゼンター画面を開く
-        function openPresenterWindow() {
-            // 既存のプレゼンターウィンドウを確認
-            const presenterWindow = window.open('presenter.html', 'presenter_window', 'width=1024,height=768');
-            
-            // フォーカスを既存のウィンドウに移動するか、新しいウィンドウを開く
-            if (presenterWindow) {
-                presenterWindow.focus();
-                
-                // 現在のスライド情報を同期
-                setTimeout(() => {
-                    const syncCommand = {
-                        action: 'fullSync',
-                        slide: currentSlide,
-                        audioAction: audioPlaying ? 'play' : 'pause',
-                        autoplay: autoplayMode,
-                        timestamp: Date.now(),
-                        source: 'main'
-                    };
-                    localStorage.setItem('syncCommand', JSON.stringify(syncCommand));
-                    localStorage.setItem('currentSlide', currentSlide.toString());
-                    
-                    showNotification('プレゼンター画面を開きました');
-                }, 500);
-            } else {
-                showNotification('ポップアップがブロックされました。設定を確認してください');
-            }
-        }
-        
-        // 通知を表示
-        function showNotification(message, duration = 3000) {
-            const notificationElement = document.getElementById('notification');
-            notificationElement.textContent = message;
-            notificationElement.classList.add('show');
-            
-            setTimeout(() => {
-                notificationElement.classList.remove('show');
-            }, duration);
-        }
-        
         // キーボードイベントのハンドラ
         function handleKeyDown(e) {
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
@@ -741,11 +617,18 @@
                 // 自動再生の切り替え
                 toggleAutoplay();
                 e.preventDefault();
-            } else if (e.key === 'o' || e.key === 'O') {
-                // プレゼンター画面を開く
-                openPresenterWindow();
-                e.preventDefault();
             }
+        }
+        
+        // 通知を表示
+        function showNotification(message) {
+            const notify = document.getElementById('notification');
+            notify.textContent = message;
+            notify.classList.add('show');
+            
+            setTimeout(() => {
+                notify.classList.remove('show');
+            }, 3000);
         }
     </script>
 </body>
