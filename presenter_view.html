@@ -184,6 +184,41 @@
             startTimer(); // Start timer when presenter view loads
         });
 
+        // --- Keyboard Shortcuts for Presenter View ---
+        document.addEventListener('keydown', (event) => {
+            // Ignore if modifier keys are pressed, to avoid conflict with browser shortcuts
+            if (event.ctrlKey || event.altKey || event.metaKey) {
+                return;
+            }
+
+            // Check if the event target is an input, textarea, or select
+            // to avoid interfering with typing in those fields.
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+                return;
+            }
+
+            switch (event.key) {
+                case ' ':
+                    event.preventDefault(); // Prevent default space bar action (e.g., scrolling)
+                    autoplayToggleBtnPresenter.click(); // Simulate click on Autoplay/Pause button
+                    break;
+                case 'ArrowLeft':
+                    // Check if the previous button is not disabled
+                    if (!prevBtnPresenter.disabled) {
+                        prevBtnPresenter.click(); // Simulate click on Previous button
+                    }
+                    break;
+                case 'ArrowRight':
+                    // Check if the next button is not disabled
+                    if (!nextBtnPresenter.disabled) {
+                        nextBtnPresenter.click(); // Simulate click on Next button
+                    }
+                    break;
+            }
+        });
+        // --- End Keyboard Shortcuts for Presenter View ---
+
     </script>
 </body>
 </html>
