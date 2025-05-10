@@ -63,6 +63,26 @@
         const continuousSeekIntervalTime = 200; // milliseconds for continuous seek interval
         // --- End Configuration ---
 
+        // --- Speaker Notes (Placeholder) ---
+        const speakerNotesData = [
+            "スライド1のノート：はじめに",
+            "スライド2のノート：主要なポイントA",
+            "スライド3のノート：主要なポイントB",
+            "スライド4のノート：詳細解説1",
+            "スライド5のノート：詳細解説2",
+            "スライド6のノート：事例紹介",
+            "スライド7のノート：データと統計",
+            "スライド8のノート：お客様の声",
+            "スライド9のノート：次のステップ",
+            "スライド10のノート：Q&A",
+            "スライド11のノート：まとめと感謝"
+        ];
+        // --- End Speaker Notes ---
+
+        // --- BroadcastChannel Setup ---
+        const channel = new BroadcastChannel('slideshow_channel');
+        // --- End BroadcastChannel Setup ---
+
         const slideContainer = document.getElementById('slide-container');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -140,6 +160,17 @@
             const audioPath = generateAudioPath(slideNumber);
             slideAudio.src = audioPath;
             slideAudio.load(); // This will trigger 'loadedmetadata' or 'error'
+
+            // --- Broadcast slide change ---
+            channel.postMessage({
+                type: 'slideChange',
+                currentSlide: slideNumber,
+                nextSlide: slideNumber < totalSlides ? slideNumber + 1 : null,
+                totalSlides: totalSlides,
+                notes: speakerNotesData[slideNumber - 1] || "ノートはありません。",
+                isAutoplaying: isAutoplaying
+            });
+            // --- End Broadcast slide change ---
         }
 
         function scheduleNextSlideIfAutoplaying() {
@@ -159,6 +190,9 @@
             isAutoplaying = true;
             autoplayToggleBtn.textContent = 'Pause';
             console.log('Autoplay started');
+            // --- Broadcast autoplay state change ---
+            channel.postMessage({ type: 'autoplayStateChange', isAutoplaying: isAutoplaying });
+            // --- End Broadcast autoplay state change ---
 
             if (slideAudio.src && !slideAudio.src.endsWith('null') && slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
                 slideAudio.play().catch(e => {
@@ -179,6 +213,9 @@
                 slideAudio.pause();
             }
             console.log('Autoplay stopped');
+            // --- Broadcast autoplay state change ---
+            channel.postMessage({ type: 'autoplayStateChange', isAutoplaying: isAutoplaying });
+            // --- End Broadcast autoplay state change ---
         }
 
         prevBtn.addEventListener('click', () => {
@@ -254,6 +291,37 @@
         
         autoplayToggleBtn.disabled = true;
         displaySlide(currentSlide);
+
+        // --- BroadcastChannel Message Handler ---
+        channel.onmessage = (event) => {
+            const message = event.data;
+            console.log('Message received from presenter:', message);
+
+            switch (message.type) {
+                case 'navigate':
+                    if (message.direction === 'next' && currentSlide < totalSlides) {
+                        nextBtn.click();
+                    } else if (message.direction === 'prev' && currentSlide > 1) {
+                        prevBtn.click();
+                    }
+                    break;
+                case 'toggleAutoplay':
+                    autoplayToggleBtn.click();
+                    break;
+                case 'requestInitialState':
+                    // Send current state back to presenter
+                    channel.postMessage({
+                        type: 'slideChange', // Use slideChange to populate everything
+                        currentSlide: currentSlide,
+                        nextSlide: currentSlide < totalSlides ? currentSlide + 1 : null,
+                        totalSlides: totalSlides,
+                        notes: speakerNotesData[currentSlide - 1] || "ノートはありません。",
+                        isAutoplaying: isAutoplaying
+                    });
+                    break;
+            }
+        };
+        // --- End BroadcastChannel Message Handler ---
 
         // --- Keyboard Shortcuts ---
         document.addEventListener('keydown', (event) => {
