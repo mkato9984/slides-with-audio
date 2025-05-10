@@ -331,6 +331,11 @@
                 return;
             }
 
+            if (event.key === 'o' || event.key === 'O') {
+                window.open('presenter_view.html', '_blank');
+                return;
+            }
+
             if (event.key === 'ArrowLeft') {
                 if (event.repeat) return; 
 
