@@ -13,7 +13,16 @@
         .current-slide-view { flex-grow: 1; aspect-ratio: 16 / 9; /* Maintain aspect ratio */ }
         .next-slide-view { /* height: 200px; */ /* Removed fixed height, use aspect-ratio */ aspect-ratio: 16 / 9; /* Maintain aspect ratio */ max-height: 250px; /* Added max-height for next slide preview */ }
         .slide-view img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; /* Ensure image behaves as block */ }
-        .notes-view { border: 1px solid #444; background-color: #333; padding: 15px; flex-grow: 1; overflow-y: auto; min-height: 100px; /* Added min-height */ }
+        .notes-view {
+            border: 1px solid #444;
+            background-color: #333;
+            padding: 15px;
+            flex-grow: 1;
+            /* overflow-y: auto; */ /* Let textarea handle its own scroll */
+            min-height: 100px; /* Added min-height */
+            display: flex; /* Added */
+            flex-direction: column; /* Added */
+        }
         
         /* Added styles for audio controls in presenter view */
         .audio-controls-presenter {
@@ -44,6 +53,12 @@
         #slide-counter-presenter { font-size: 18px; }
         #presenter-timer { font-size: 18px; }
         h2, h3 { color: #00aaff; }
+        /* Style for h3 inside notes-view */
+        .notes-view > h3 {
+            margin-top: 0;
+            margin-bottom: 10px; /* Space between title and textarea */
+            flex-shrink: 0; /* Prevent h3 from shrinking */
+        }
     </style>
 </head>
 <body>
@@ -55,7 +70,7 @@
             </div>
             <div class="notes-view">
                 <h3>Speaker Notes</h3>
-                <div id="speaker-notes-presenter">Loading notes...</div>
+                <textarea id="speaker-notes-presenter" style="width: 100%; box-sizing: border-box; background-color: #444; color: #eee; border: 1px solid #555; padding: 10px; font-family: sans-serif; font-size: 16px; flex-grow: 1; min-height: 0;">Loading notes...</textarea>
             </div>
         </div>
         <div class="sidebar">
@@ -115,12 +130,10 @@
 
         // --- Keyboard Shortcut State for Audio Seeking ---
         const longPressDelay = 500; // ms for long press
-        const seekInterval = 200; // ms for continuous seek
+        const seekIntervalTimerDuration = 200; // ms for continuous seek
         const seekAmount = 5; // seconds to seek by
         let arrowLeftKeyDownTimer = null;
         let arrowRightKeyDownTimer = null;
-        let arrowLeftLongPressOccurred = false;
-        let arrowRightLongPressOccurred = false;
         let continuousSeekTimer = null;
         let currentAudioSrc = null; // To track which audio the controls are for
         // --- End Keyboard Shortcut State ---
@@ -188,18 +201,21 @@
 
         channel.onmessage = (event) => {
             const data = event.data;
-            console.log('Presenter received:', data);
+            console.log('Presenter received:', data); // Existing log
             if (data.type === 'slideChange') {
+                console.log(`Presenter: slideChange received. Old currentAudioSrc: ${currentAudioSrc}, New audioSrc from message: ${data.audioSrc}`);
                 currentSlideNumberPresenter = data.currentSlide;
                 totalSlidesPresenter = data.totalSlides;
                 currentAudioSrc = data.audioSrc; // Store current audio source
+                console.log(`Presenter: currentAudioSrc updated to: ${currentAudioSrc}`);
 
                 currentSlideImgPresenter.src = generateSlidePath(data.currentSlide);
                 nextSlideImgPresenter.src = data.nextSlide ? generateSlidePath(data.nextSlide) : ""; // Handle no next slide
                 nextSlideImgPresenter.style.display = data.nextSlide ? 'block' : 'none';
 
                 slideCounterPresenter.textContent = `${data.currentSlide} / ${data.totalSlides}`;
-                speakerNotesPresenter.textContent = speakerNotesData[data.currentSlide - 1] || "No notes for this slide.";
+                // Update to set value for textarea
+                speakerNotesPresenter.value = speakerNotesData[data.currentSlide - 1] || "No notes for this slide.";
                 
                 prevBtnPresenter.disabled = data.currentSlide === 1;
                 nextBtnPresenter.disabled = data.currentSlide === data.totalSlides;
@@ -231,14 +247,19 @@
                     // stopTimer();
                 }
             } else if (data.type === 'audioMetadataLoaded') {
+                console.log(`Presenter: audioMetadataLoaded received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}, Duration: ${data.duration}`);
                 // Ensure this metadata is for the current slide's audio
                 if (data.audioSrc === currentAudioSrc) {
                     audioSeekBarPresenter.max = data.duration;
                     audioSeekBarPresenter.value = data.currentTime;
                     audioTimeDisplayPresenter.textContent = `${formatTime(data.currentTime)} / ${formatTime(data.duration)}`;
                     audioSeekBarPresenter.disabled = false;
+                    console.log('Presenter: Audio seek bar ENABLED.');
+                } else {
+                    console.warn('Presenter: Received audioMetadataLoaded for a different audio source. Ignoring.');
                 }
             } else if (data.type === 'audioTimeUpdate') {
+                // console.log(`Presenter: audioTimeUpdate received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}, CurrentTime: ${data.currentTime}`); // Optional: can be very verbose
                  // Ensure this time update is for the current slide's audio
                 if (data.audioSrc === currentAudioSrc) {
                     if (!audioSeekBarPresenter.disabled) { // Only update if not disabled (e.g. by error)
@@ -251,11 +272,15 @@
                     }
                 }
             } else if (data.type === 'audioError') {
+                console.log(`Presenter: audioError received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}`);
                 if (data.audioSrc === currentAudioSrc) {
                     console.warn('Presenter received audio error for:', data.audioSrc);
                     audioSeekBarPresenter.disabled = true;
                     audioSeekBarPresenter.value = 0;
                     audioTimeDisplayPresenter.textContent = "Audio Error";
+                    console.log('Presenter: Audio seek bar DISABLED due to error.');
+                } else {
+                     console.warn('Presenter: Received audioError for a different audio source. Ignoring.');
                 }
             }
         };
@@ -279,6 +304,14 @@
             // Initialize audio controls to disabled state
             audioSeekBarPresenter.disabled = true;
             audioTimeDisplayPresenter.textContent = "0:00 / 0:00";
+
+            // Add event listener for speaker notes textarea
+            speakerNotesPresenter.addEventListener('input', () => {
+                if (currentSlideNumberPresenter > 0 && currentSlideNumberPresenter <= speakerNotesData.length) {
+                    speakerNotesData[currentSlideNumberPresenter - 1] = speakerNotesPresenter.value;
+                    console.log(`Presenter: Notes for slide ${currentSlideNumberPresenter} updated:`, speakerNotesPresenter.value);
+                }
+            });
         });
 
         // Added event listener for audio seek bar
@@ -295,103 +328,95 @@
         });
         // End added event listener
 
-        // --- Keyboard Shortcuts for Presenter View ---
+        // --- Unified Keyboard Shortcuts for Presenter View ---
         document.addEventListener('keydown', (event) => {
-            // Ignore if modifier keys are pressed, to avoid conflict with browser shortcuts
-            if (event.ctrlKey || event.altKey || event.metaKey) {
-                return;
-            }
-
-            // Check if the event target is an input, textarea, or select
-            // to avoid interfering with typing in those fields.
             const targetTagName = event.target.tagName.toLowerCase();
-            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select' || event.ctrlKey || event.altKey || event.metaKey) {
                 return;
             }
 
             switch (event.key) {
                 case ' ':
-                    event.preventDefault(); // Prevent default space bar action (e.g., scrolling)
-                    autoplayToggleBtnPresenter.click(); // Simulate click on Autoplay/Pause button
+                    event.preventDefault();
+                    autoplayToggleBtnPresenter.click();
                     break;
                 case 'ArrowLeft':
-                    if (event.repeat) return; // Already handled by keydown for long press
-                    if (!arrowLeftLongPressOccurred) { // If long press didn't happen, it's a short press
-                        if (!prevBtnPresenter.disabled) {
-                            prevBtnPresenter.click();
-                        }
+                    if (event.repeat) return; // リピートイベントは無視
+                    // 長押しタイマーを開始 (シークバーが有効な場合のみ)
+                    if (!arrowLeftKeyDownTimer && !audioSeekBarPresenter.disabled) {
+                        arrowLeftKeyDownTimer = setTimeout(() => {
+                            console.log('Presenter: Long press Left - Start Seeking Backwards. currentAudioSrc:', currentAudioSrc);
+                            performSeek(-seekAmount); // 最初のシーク
+                            if (continuousSeekTimer) clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = setInterval(() => performSeek(-seekAmount), seekIntervalTimerDuration);
+                            arrowLeftKeyDownTimer = null; // タイマーが発火したらクリア（長押し発生済みを示す）
+                        }, longPressDelay);
                     }
-                    arrowLeftLongPressOccurred = false; // Reset for next press
                     break;
                 case 'ArrowRight':
-                    if (event.repeat) return; // Already handled by keydown for long press
-                    if (!arrowRightLongPressOccurred) { // If long press didn't happen, it's a short press
-                        if (!nextBtnPresenter.disabled) {
-                            nextBtnPresenter.click();
-                        }
+                    if (event.repeat) return; // リピートイベントは無視
+                    // 長押しタイマーを開始 (シークバーが有効な場合のみ)
+                    if (!arrowRightKeyDownTimer && !audioSeekBarPresenter.disabled) {
+                        arrowRightKeyDownTimer = setTimeout(() => {
+                            console.log('Presenter: Long press Right - Start Seeking Forwards. currentAudioSrc:', currentAudioSrc);
+                            performSeek(seekAmount); // 最初のシーク
+                            if (continuousSeekTimer) clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = setInterval(() => performSeek(seekAmount), seekIntervalTimerDuration);
+                            arrowRightKeyDownTimer = null; // タイマーが発火したらクリア（長押し発生済みを示す）
+                        }, longPressDelay);
                     }
-                    arrowRightLongPressOccurred = false; // Reset for next press
                     break;
-            }
-        });
-
-        // --- Added Keydown/Keyup for Long Press Audio Seeking ---
-        document.addEventListener('keydown', (event) => {
-            const targetTagName = event.target.tagName.toLowerCase();
-            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select') {
-                return;
-            }
-            if (event.ctrlKey || event.altKey || event.metaKey) return;
-
-            if (event.key === 'ArrowLeft') {
-                if (arrowLeftKeyDownTimer === null && !event.repeat && !audioSeekBarPresenter.disabled) { // Start timer only on first press and if audio is active
-                    arrowLeftLongPressOccurred = false;
-                    arrowLeftKeyDownTimer = setTimeout(() => {
-                        arrowLeftLongPressOccurred = true;
-                        console.log('Long press Left - Start Seeking Backwards');
-                        performSeek(-seekAmount); // Seek once immediately
-                        if (continuousSeekTimer) clearInterval(continuousSeekTimer); // Clear previous continuous seek
-                        continuousSeekTimer = setInterval(() => performSeek(-seekAmount), seekInterval);
-                    }, longPressDelay);
-                }
-            } else if (event.key === 'ArrowRight') {
-                if (arrowRightKeyDownTimer === null && !event.repeat && !audioSeekBarPresenter.disabled) { // Start timer only on first press and if audio is active
-                    arrowRightLongPressOccurred = false;
-                    arrowRightKeyDownTimer = setTimeout(() => {
-                        arrowRightLongPressOccurred = true;
-                        console.log('Long press Right - Start Seeking Forwards');
-                        performSeek(seekAmount); // Seek once immediately
-                        if (continuousSeekTimer) clearInterval(continuousSeekTimer); // Clear previous continuous seek
-                        continuousSeekTimer = setInterval(() => performSeek(seekAmount), seekInterval);
-                    }, longPressDelay);
-                }
             }
         });
 
         document.addEventListener('keyup', (event) => {
-            if (event.key === 'ArrowLeft') {
-                clearTimeout(arrowLeftKeyDownTimer);
-                arrowLeftKeyDownTimer = null;
-                if (continuousSeekTimer) {
-                    clearInterval(continuousSeekTimer);
-                    continuousSeekTimer = null;
-                    console.log('Stop continuous seek backwards');
-                }
-                // Short press navigation is handled in the other keydown listener if arrowLeftLongPressOccurred is false
-            } else if (event.key === 'ArrowRight') {
-                clearTimeout(arrowRightKeyDownTimer);
-                arrowRightKeyDownTimer = null;
-                if (continuousSeekTimer) {
-                    clearInterval(continuousSeekTimer);
-                    continuousSeekTimer = null;
-                    console.log('Stop continuous seek forwards');
-                }
-                // Short press navigation is handled in the other keydown listener if arrowRightLongPressOccurred is false
+            const targetTagName = event.target.tagName.toLowerCase();
+             if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select' || event.ctrlKey || event.altKey || event.metaKey) {
+                return;
+            }
+
+            switch (event.key) {
+                case 'ArrowLeft':
+                    if (arrowLeftKeyDownTimer) { // タイマーがまだ存在する場合＝短押し
+                        clearTimeout(arrowLeftKeyDownTimer);
+                        arrowLeftKeyDownTimer = null;
+                        if (!prevBtnPresenter.disabled) {
+                            console.log("Presenter: Short press ArrowLeft - Navigate Previous");
+                            prevBtnPresenter.click();
+                        }
+                    } else { // タイマーが存在しない＝長押しが発生してクリアされた後か、シークバーが無効だった
+                        if (continuousSeekTimer) {
+                            clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = null;
+                            console.log('Presenter: Stop continuous seek backwards');
+                        }
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (arrowRightKeyDownTimer) { // タイマーがまだ存在する場合＝短押し
+                        clearTimeout(arrowRightKeyDownTimer);
+                        arrowRightKeyDownTimer = null;
+                        if (!nextBtnPresenter.disabled) {
+                            console.log("Presenter: Short press ArrowRight - Navigate Next");
+                            nextBtnPresenter.click();
+                        }
+                    } else { // タイマーが存在しない＝長押しが発生してクリアされた後か、シークバーが無効だった
+                        if (continuousSeekTimer) {
+                            clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = null;
+                            console.log('Presenter: Stop continuous seek forwards');
+                        }
+                    }
+                    break;
             }
         });
 
         function performSeek(amount) {
-            if (audioSeekBarPresenter.disabled || !currentAudioSrc) return;
+            console.log(`Presenter: performSeek called with amount: ${amount}. SeekBar disabled: ${audioSeekBarPresenter.disabled}, currentAudioSrc: ${currentAudioSrc}`);
+            if (audioSeekBarPresenter.disabled || !currentAudioSrc) {
+                console.log('Presenter: performSeek returning early. SeekBar disabled or no currentAudioSrc.');
+                return;
+            }
 
             let newTime = parseFloat(audioSeekBarPresenter.value) + amount;
             const duration = parseFloat(audioSeekBarPresenter.max);
@@ -409,8 +434,6 @@
             });
             console.log(`Seeked to ${newTime} for ${currentAudioSrc}`);
         }
-        // --- End Added Keydown/Keyup for Long Press Audio Seeking ---
-
     </script>
 </body>
 </html>

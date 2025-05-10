@@ -74,6 +74,8 @@
         const channel = new BroadcastChannel('slideshow_channel');
         // --- End BroadcastChannel Setup ---
 
+        let currentAudioPathForBroadcasting = null; // 追加: 現在のオーディオパスを保持
+
         const slideContainer = document.getElementById('slide-container');
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -131,6 +133,7 @@
             nextBtn.disabled = slideNumber === totalSlides;
 
             const audioPath = generateAudioPath(slideNumber);
+            currentAudioPathForBroadcasting = audioPath; // 追加: パスを保存
             slideAudio.src = audioPath;
             slideAudio.load(); // This will trigger 'loadedmetadata' or 'error'
 
@@ -142,7 +145,7 @@
                 totalSlides: totalSlides,
                 notes: speakerNotesData[slideNumber - 1] || "ノートはありません。",
                 isAutoplaying: isAutoplaying,
-                audioSrc: audioPath, // Send audio source for presenter to know duration
+                audioSrc: currentAudioPathForBroadcasting, // 変更: 保持しているパスを使用
             });
             // --- End Broadcast slide change ---
         }
@@ -225,7 +228,7 @@
                 type: 'audioMetadataLoaded',
                 duration: slideAudio.duration,
                 currentTime: slideAudio.currentTime,
-                audioSrc: slideAudio.src // include src to avoid race conditions if slide changed quickly
+                audioSrc: currentAudioPathForBroadcasting // 変更: 保持しているパスを使用
             });
         });
 
@@ -235,7 +238,7 @@
                 type: 'audioTimeUpdate',
                 currentTime: slideAudio.currentTime,
                 duration: slideAudio.duration, // Also send duration for safety
-                audioSrc: slideAudio.src // include src to avoid race conditions
+                audioSrc: currentAudioPathForBroadcasting // 変更: 保持しているパスを使用
             });
         });
 
@@ -253,7 +256,7 @@
             }
             channel.postMessage({ // Inform presenter about the audio error
                 type: 'audioError',
-                audioSrc: slideAudio.src
+                audioSrc: currentAudioPathForBroadcasting // 変更: 保持しているパスを使用 (エラー時も統一)
             });
         });
 
@@ -293,7 +296,7 @@
                         totalSlides: totalSlides,
                         notes: speakerNotesData[currentSlide - 1] || "ノートはありません。",
                         isAutoplaying: isAutoplaying,
-                        audioSrc: slideAudio.src, // send current audio src
+                        audioSrc: currentAudioPathForBroadcasting, // 変更
                     });
                     // Additionally, if audio is loaded, send its current state
                     if (slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
@@ -301,14 +304,14 @@
                             type: 'audioMetadataLoaded',
                             duration: slideAudio.duration,
                             currentTime: slideAudio.currentTime,
-                            audioSrc: slideAudio.src
+                            audioSrc: currentAudioPathForBroadcasting // 変更
                         });
                     } else if (slideAudio.error) {
-                         channel.postMessage({ type: 'audioError', audioSrc: slideAudio.src });
+                         channel.postMessage({ type: 'audioError', audioSrc: currentAudioPathForBroadcasting }); // 変更
                     }
                     break;
                 case 'seekAudio':
-                    if (message.time != null && slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
+                    if (message.audioSrc === currentAudioPathForBroadcasting && message.time != null && slideAudio.readyState >= HTMLMediaElement.HAVE_METADATA && !slideAudio.error) {
                         slideAudio.currentTime = message.time;
                     }
                     break;
