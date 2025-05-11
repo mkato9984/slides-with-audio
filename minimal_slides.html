@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Slideshow</title>
-    <style>
+    <title>Minimal Slideshow</title>    <style>
         body { 
             font-family: sans-serif; 
             display: flex; 
@@ -14,56 +13,64 @@
             min-height: 100vh; 
             margin: 0; 
             background-color: #f0f0f0; 
-            padding: 10px; 
+            padding: 10px 10px 20px 10px; /* 下部のパディングを増やす */
             box-sizing: border-box;
-        }
-
-        #slideshow-area { 
+            overflow: hidden; /* 意図しないスクロールを防止 */
+        }        #slideshow-area { 
+            position: relative; /* コントロールの絶対配置のための基準点 */
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
-            height: calc(100vh - 20px); /* bodyの上下paddingを引いた高さ */
+            max-height: calc(100vh - 20px); /* bodyの上下paddingを引いた高さ */
             box-sizing: border-box;
-        }
-
-        #slide-container { 
-            flex-grow: 1; /* 利用可能なスペースを埋める */
+            justify-content: center; /* コンテナ内の要素を中央揃え */
+            padding-bottom: 20px; /* 下部の余白を増加 */
+        }        #slide-container { 
+            flex: 0 1 auto; /* 伸縮しない、自然サイズを尊重 */
             min-height: 0;  /* flexアイテムが縮小できるようにする */
             width: auto;    /* aspect-ratio を活かすために auto にする */
             max-width: 90vw; /* ただし、ビューポート幅の90%を超えない */
+            max-height: calc(80vh - 150px); /* コントロール用のスペースをさらに確保 */
             aspect-ratio: 16 / 9; 
             border: 1px solid #ccc; 
             background-color: white; 
             display: grid; 
             align-items: center; 
             justify-items: center; 
-        }
-
-        #slide-container img { 
-            max-width: 100%; /* Added */
-            max-height: 100%; /* Added */
-            object-fit: contain; 
+            margin-bottom: 150px; /* コントロールボタン用のスペースをさらに拡大 */
+        }#slide-container img { 
+            width: 100%; /* 幅を100%に固定 */
+            height: 100%; /* 高さを100%に固定 */
+            object-fit: contain; /* アスペクト比を維持しながら領域内に収める */
             object-position: center center; 
             grid-area: 1 / 1; /* Added for stacking in the same grid cell */
             opacity: 0; 
             transition: opacity 0.5s ease-in-out; 
+            max-height: 100%; /* 最大高さを制限 */
+            z-index: 5; /* 階層関係を明確化 */
         }
         #slide-container img.active { 
             opacity: 1; 
-            z-index: 1; 
-        }
-        #controls { 
+            z-index: 6; /* 少し上の階層にする */        }#controls { 
             flex-shrink: 0; /* コントロール部分は縮まない */
-            width: 100%; /* 親の幅に合わせる */
-            max-width: 90vw; /* スライドコンテナの最大幅に合わせる */
+            width: auto; /* 内容に合わせる */
+            max-width: 600px; /* 最大幅を制限して間延びを防ぐ */
             display: flex; 
             flex-direction: row; 
-            justify-content: space-between; 
+            justify-content: center; /* 中央揃え */
             align-items: center; 
-            margin-top: 10px; 
-            padding: 5px 0; 
+            padding: 12px 20px; /* パディングを増やす */
             box-sizing: border-box;
+            min-height: 60px; /* 最小の高さを増加 */
+            background-color: rgba(0, 0, 0, 0.07); /* 背景色をより濃くする */
+            border-radius: 8px; /* 角をより丸くする */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* 影をより強調 */            border: 1px solid rgba(0, 0, 0, 0.1); /* 薄い境界線を追加 */
+            position: absolute; /* スライドと重ならないように絶対配置 */
+            bottom: 10px; /* スライドからさらに離れた位置に配置 */
+            left: 50%; /* 中央配置のため */
+            transform: translateX(-50%); /* X軸方向に中央寄せ */
+            z-index: 100; /* 確実に最前面に */
         }
         #nav-controls { 
             display: flex; 
@@ -76,48 +83,151 @@
         #slideshow-autoplay-controls { 
             display: flex; 
             align-items: center; 
-        }
-        button { 
-            padding: 5px 10px; /* Reduced padding */
-            font-size: 12px; /* Reduced font size */
+        }        button { 
+            padding: 8px 15px; /* パディングをさらに増やす */
+            font-size: 14px; /* フォントサイズを大きく */
             cursor: pointer; 
-            background-color: #007bff; 
+            background-color: #0056b3; /* 色を濃くして目立たせる */
             color: white; 
             border: none; 
-            border-radius: 3px; /* Slightly reduced radius */
-            margin: 0 5px; 
+            border-radius: 4px; /* より丸みを持たせる */
+            margin: 0 8px; /* 間隔を広げる */
+            box-shadow: 0 3px 5px rgba(0,0,0,0.2); /* 影を強調 */
+            transition: all 0.2s ease; /* ホバー効果のためのトランジション */
+            font-weight: 600; /* 太字にする */
+            min-width: 80px; /* 最小幅を設定 */
+            position: relative; /* z-indexのための位置づけ */
+            z-index: 20; /* 確実に最前面に表示 */
+        }
+        button:hover {
+            background-color: #0069d9; /* ホバー時に色を濃くする */
+            transform: translateY(-2px); /* より明確な浮き上がる効果 */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25); /* ホバー時の影を強調 */
+        }
+        button:active {
+            transform: translateY(1px); /* クリック時に押し込まれる効果 */
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2); /* クリック時は影を弱める */
         }
         button:disabled { 
-            background-color: #ccc; 
-            cursor: not-allowed; 
-        }
-        #slide-counter { 
-            font-size: 14px; /* Reduced font size */
-            margin: 0 10px; /* Adjusted margin */
-        }
-        audio { 
+            background-color: #7a7a7a; /* 無効時もある程度目立つ色 */
+            color: #e0e0e0; /* 無効時のテキスト色 */
+            cursor: not-allowed;
+            box-shadow: none; /* 無効状態では影なし */
+        }        #slide-counter { 
+            font-size: 16px; /* フォントサイズをさらに大きく */
+            margin: 0 15px; /* 余白を増やす */
+            font-weight: 700; /* より太く表示 */
+            color: #222; /* より濃い色で見やすく */
+            background-color: rgba(255, 255, 255, 0.9); /* 背景をより不透明に */
+            padding: 5px 15px; /* パディングを増やす */
+            border-radius: 15px; /* より丸みを持たせる */
+            border: 1px solid rgba(0, 0, 0, 0.1); /* 薄い境界線を追加 */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* 微かな影を追加 */
+            position: relative;
+            z-index: 20; /* 必ず前面に */
+            white-space: nowrap; /* テキストが折り返されないようにする */
+            display: inline-block; /* インラインブロック要素として表示 */
+        }audio { 
             margin-top: 10px; 
+        }        /* レスポンシブ対応のためのメディアクエリ追加 */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px 5px 15px 5px;
+            }
+            #slideshow-area {
+                padding-bottom: 15px;
+                max-height: calc(100vh - 30px);
+            }            #slide-container {
+                max-width: 95vw;
+                max-height: calc(65vh - 120px); /* モバイルでは小さい比率に調整 */
+                margin-bottom: 110px; /* モバイルではボタンエリア用のスペースをさらに増やす */
+            }            #controls {
+                flex-direction: row; /* 横並びを維持 */
+                flex-wrap: wrap; /* 必要に応じて折り返す */
+                height: auto;
+                gap: 8px;
+                padding: 10px;
+                min-height: 60px; /* 高さを少し低くする */
+                width: 95%; /* モバイルでも幅を広げすぎない */
+                max-width: 95%; /* モバイルでも幅を広げすぎない */                bottom: 5px; /* さらに下に配置 */
+                background-color: rgba(0, 0, 0, 0.07); /* 元の背景色に戻す */
+            }            #nav-controls, #media-controls {
+                display: flex;
+                flex-direction: row; /* 横並びを強制 */
+                align-items: center;
+                justify-content: center;
+                flex-wrap: nowrap; /* 折り返さない */
+                min-width: 0; /* フレックスアイテムが縮小できるようにする */
+            }
+            button {
+                padding: 10px 15px; /* モバイルではタップしやすいサイズに */
+                font-size: 14px;
+                min-width: 90px;
+            }
+        }
+        
+        @media (max-height: 600px) {
+            body {
+                padding: 5px 5px 10px 5px;
+            }
+            #slideshow-area {
+                padding-bottom: 10px;
+            }            #slide-container {
+                max-height: calc(60vh - 110px); /* 低い画面高さでさらに小さく */
+                margin-bottom: 110px; /* 低い画面での余白調整をより増やす */
+            }
+            #controls {
+                padding: 8px 10px;
+                min-height: 40px;
+                bottom: 5px; /* 低い画面ではより下に配置 */
+                flex-direction: row; /* 横並びを維持 */
+            }
+            button {
+                padding: 6px 12px;
+                font-size: 13px;
+                min-width: 80px; /* 小さい画面では幅を縮小 */
+            }
+        }
+        
+        /* 高解像度大画面でのコントロール位置調整 */
+        @media (min-height: 900px) {
+            body {
+                padding: 15px 15px 30px 15px;
+            }
+            #slideshow-area {
+                padding-bottom: 30px;
+            }            #slide-container {
+                max-height: calc(70vh - 140px); /* 大画面でもコントロール用にさらにスペースを確保 */
+                margin-bottom: 160px; /* 大きな画面での余白調整をより増やす */
+            }
+            #controls {
+                min-height: 70px;
+                padding: 15px 25px;
+                bottom: 20px; /* 大きな画面でもより下に配置 */
+                flex-direction: row; /* 横並びを維持 */
+                max-width: 700px; /* 大きな画面ではボタンエリアを広げる */
+            }
+            button {
+                padding: 12px 20px;
+                font-size: 16px;
+                min-width: 120px;
+            }
         }
     </style>
 </head>
-<body>
-    <div id="slideshow-area"> <!-- New parent container -->
+<body>    <div id="slideshow-area"> <!-- Main parent container -->
         <div id="slide-container">
             <!-- Slides will be loaded here by JavaScript -->
         </div>
-        <div id="controls">
+        <!-- Controls are now absolutely positioned -->        <div id="controls">
             <div id="nav-controls">
                 <button id="prev-btn">Previous</button>
                 <span id="slide-counter">1 / 11</span>
                 <button id="next-btn">Next</button>
             </div>
-            <div id="media-controls">
-                <div id="slideshow-autoplay-controls">
-                    <button id="autoplay-toggle-btn">Autoplay</button>
-                </div>
-            </div>
+            <button id="autoplay-toggle-btn">Autoplay</button>
         </div>
-    </div> <!-- End of new parent container -->
+    </div> <!-- End of main parent container -->
     <audio id="slide-audio" style="display: none;"></audio>
 
     <script>
