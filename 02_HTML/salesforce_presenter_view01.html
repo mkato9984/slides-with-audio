@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="wid        // --- Configuration (should match minimal_slides.html for paths if not sent via channel) ---
+        const slideImageBasePath = "salesforce_slides/salesforce_slides01/";
+        const slideImagePrefix = "slide";
+        const slideImageExtension = ".png";evice-width, initial-scale=1.0">
+    <title>Presenter View - Salesforce 01</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background-color: #222; color: #eee; overflow: hidden; /* Prevent body scrollbar */ }
+        .presenter-container { display: flex; flex-grow: 1; padding: 20px; gap: 20px; max-width: 1600px; margin: 0 auto; width: 100%; box-sizing: border-box; overflow: hidden; /* Prevent this container from overflowing */ }
+        .main-content { flex-grow: 2; flex-basis: 65%; display: flex; flex-direction: column; gap: 15px; min-width: 0; /* Prevent overflow */ overflow: hidden; /* Prevent main-content from overflowing */ }
+        .sidebar { flex-grow: 1; flex-basis: 35%; display: flex; flex-direction: column; gap: 15px; min-width: 0; /* Prevent overflow */ }
+        .slide-view { border: 1px solid #444; background-color: #333; display: flex; justify-content: center; align-items: center; overflow: hidden; width: 100%; }
+        .current-slide-view { flex-grow: 1; aspect-ratio: 16 / 9; }
+        .next-slide-view { aspect-ratio: 16 / 9; max-height: 250px; }
+        .slide-view img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+        .notes-view {
+            border: 1px solid #444;
+            background-color: #333;
+            padding: 15px;
+            flex-grow: 1;
+            /* overflow-y: auto; */ /* Let textarea handle its own scroll */
+            min-height: 0; /* Allow notes-view to shrink properly with flexbox */
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* Added styles for audio controls in presenter view */
+        .audio-controls-presenter {
+            padding: 15px;
+            background-color: #333;
+            border: 1px solid #444;
+            margin-top: 15px; /* Add some space above */
+        }
+        .audio-controls-presenter h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        #audio-seek-bar-presenter {
+            width: 100%;
+            cursor: pointer;
+        }
+        #audio-time-display-presenter {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 5px;
+            color: #ccc;
+        }
+        /* End added styles */
+
+        .controls-presenter { display: flex; justify-content: center; align-items: center; padding: 10px; background-color: #1a1a1a; border-top: 1px solid #444; gap: 10px;}
+        .controls-presenter button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #007bff; color: white; border: none; border-radius: 5px; }
+        .controls-presenter button:disabled { background-color: #555; cursor: not-allowed; }
+        #slide-counter-presenter { font-size: 18px; }
+        #presenter-timer { font-size: 18px; }
+        h2, h3 { color: #00aaff; }
+        /* Style for h3 inside notes-view */
+        .notes-view > h3 {
+            margin-top: 0;
+            margin-bottom: 10px; /* Space between title and textarea */
+            flex-shrink: 0; /* Prevent h3 from shrinking */
+        }
+    </style>
+</head>
+<body>
+    <div class="presenter-container">
+        <div class="main-content">
+            <h2>Current Slide</h2>
+            <div id="current-slide-presenter" class="slide-view current-slide-view">
+                <img id="current-slide-img-presenter" src="" alt="Current Slide">
+            </div>
+            <div class="notes-view">
+                <h3>Speaker Notes</h3>
+                <textarea id="speaker-notes-presenter" style="width: 100%; box-sizing: border-box; background-color: #444; color: #eee; border: 1px solid #555; padding: 10px; font-family: sans-serif; font-size: 16px; flex-grow: 1; min-height: 0;">Loading notes...</textarea>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h2>Next Slide</h2>
+            <div id="next-slide-presenter" class="slide-view next-slide-view">
+                <img id="next-slide-img-presenter" src="" alt="Next Slide">
+            </div>
+
+            <!-- Added Audio Controls Section -->
+            <div class="audio-controls-presenter">
+                <h3>Audio Controls</h3>
+                <input type="range" id="audio-seek-bar-presenter" value="0" disabled>
+                <div id="audio-time-display-presenter">0:00 / 0:00</div>
+            </div>
+            <!-- End Added Audio Controls Section -->
+
+            <h2>Controls</h2>
+            <div id="presenter-info" style="padding:15px; background-color: #333; border: 1px solid #444;">
+                <p>Status: <span id="autoplay-status-presenter">Paused</span></p>
+                <p>Timer: <span id="presenter-timer">00:00</span></p>
+            </div>
+            <div class="notes-import-section" style="padding:15px; background-color: #333; border: 1px solid #444; margin-top: 15px;">
+                <h3>Import Notes</h3>
+                <input type="file" id="notes-file-input" accept=".txt" style="display: none;">
+                <button id="import-notes-btn" style="padding: 8px 15px; font-size: 14px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; width: 100%;">Import Notes from File</button>
+                <p id="import-status-message" style="font-size: 12px; color: #aaa; margin-top: 8px; text-align: center;"></p>
+            </div>
+        </div>
+    </div>
+    <div class="controls-presenter">
+        <button id="prev-btn-presenter">Previous</button>
+        <span id="slide-counter-presenter">0 / 0</span>
+        <button id="next-btn-presenter">Next</button>
+        <button id="autoplay-toggle-btn-presenter">Autoplay</button>
+    </div>
+
+    <script>
+        // --- Configuration (should match minimal_slides.html for paths if not sent via channel) ---
+        const slideImageBasePath = "../01_スライド資料/salesforce_slides01/";
+        const slideImagePrefix = "slide";
+        const slideImageExtension = ".png";
+        // --- End Configuration ---
+
+        const currentSlideImgPresenter = document.getElementById('current-slide-img-presenter');
+        const nextSlideImgPresenter = document.getElementById('next-slide-img-presenter');
+        const speakerNotesPresenter = document.getElementById('speaker-notes-presenter');
+        const slideCounterPresenter = document.getElementById('slide-counter-presenter');
+        const prevBtnPresenter = document.getElementById('prev-btn-presenter');
+        const nextBtnPresenter = document.getElementById('next-btn-presenter');
+        const autoplayToggleBtnPresenter = document.getElementById('autoplay-toggle-btn-presenter');
+        const autoplayStatusPresenter = document.getElementById('autoplay-status-presenter');
+        const presenterTimerDisplay = document.getElementById('presenter-timer');
+
+        // Added DOM elements for audio controls
+        const audioSeekBarPresenter = document.getElementById('audio-seek-bar-presenter');
+        const audioTimeDisplayPresenter = document.getElementById('audio-time-display-presenter');
+        // End added DOM elements
+
+        // DOM elements for notes import
+        const notesFileInput = document.getElementById('notes-file-input');
+        const importNotesBtn = document.getElementById('import-notes-btn');
+        const importStatusMessage = document.getElementById('import-status-message');
+
+        let totalSlidesPresenter = 0;
+        let currentSlideNumberPresenter = 0;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        // --- Keyboard Shortcut State for Audio Seeking ---
+        const longPressDelay = 500; // ms for long press
+        const seekIntervalTimerDuration = 200; // ms for continuous seek
+        const seekAmount = 5; // seconds to seek by
+        let arrowLeftKeyDownTimer = null;
+        let arrowRightKeyDownTimer = null;
+        let continuousSeekTimer = null;
+        let currentAudioSrc = null; // To track which audio the controls are for
+        // --- End Keyboard Shortcut State ---
+
+        // Salesforce向けのスピーカーノート
+        const speakerNotesData = [
+            "スライド1のノート：Salesforceの概要",
+            "スライド2のノート：Salesforceの主要製品",
+            "スライド3のノート：クラウドソリューションの利点",
+            "スライド4のノート：Customer 360の詳細",
+            "スライド5のノート：セールスとマーケティングの統合",
+            "スライド6のノート：導入事例",
+            "スライド7のノート：ROIと成果データ",
+            "スライド8のノート：顧客の声と評価",
+            "スライド9のノート：導入ステップと計画",
+            "スライド10のノート：よくある質問への回答",
+            "スライド11のノート：まとめと次のステップ"
+        ];
+
+        // Added formatTime function (similar to one from minimal_slides)
+        function formatTime(timeInSeconds) {
+            if (isNaN(timeInSeconds) || timeInSeconds === Infinity) {
+                return "0:00";
+            }
+            const minutes = Math.floor(timeInSeconds / 60);
+            const seconds = Math.floor(timeInSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+        // End added formatTime function
+
+        function generateSlidePath(slideNumber) {
+            if (slideNumber <= 0) return ""; // Or a placeholder image
+            const slidePadded = slideNumber.toString().padStart(2, '0');
+            return `${slideImageBasePath}${slideImagePrefix}${slidePadded}${slideImageExtension}`;
+        }
+        
+        function formatTimer(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            secondsElapsed = 0;
+            presenterTimerDisplay.textContent = formatTimer(secondsElapsed);
+            timerInterval = setInterval(() => {
+                secondsElapsed++;
+                presenterTimerDisplay.textContent = formatTimer(secondsElapsed);
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+        
+        function resetTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            presenterTimerDisplay.textContent = formatTimer(secondsElapsed);
+        }
+
+
+        const channel = new BroadcastChannel('slideshow_channel');
+
+        channel.onmessage = (event) => {
+            const data = event.data;
+            console.log('Presenter received:', data); // Existing log
+            if (data.type === 'slideChange') {
+                console.log(`Presenter: slideChange received. Old currentAudioSrc: ${currentAudioSrc}, New audioSrc from message: ${data.audioSrc}`);
+                currentSlideNumberPresenter = data.currentSlide;
+                totalSlidesPresenter = data.totalSlides;
+                currentAudioSrc = data.audioSrc; // Store current audio source
+                console.log(`Presenter: currentAudioSrc updated to: ${currentAudioSrc}`);
+
+                currentSlideImgPresenter.src = generateSlidePath(data.currentSlide);
+                nextSlideImgPresenter.src = data.nextSlide ? generateSlidePath(data.nextSlide) : ""; // Handle no next slide
+                nextSlideImgPresenter.style.display = data.nextSlide ? 'block' : 'none';
+
+                slideCounterPresenter.textContent = `${data.currentSlide} / ${data.totalSlides}`;
+                // Update to set value for textarea
+                speakerNotesPresenter.value = speakerNotesData[data.currentSlide - 1] || "No notes for this slide.";
+                
+                prevBtnPresenter.disabled = data.currentSlide === 1;
+                nextBtnPresenter.disabled = data.currentSlide === data.totalSlides;
+                
+                autoplayStatusPresenter.textContent = data.isAutoplaying ? 'Playing' : 'Paused';
+                autoplayToggleBtnPresenter.textContent = data.isAutoplaying ? 'Pause' : 'Autoplay';
+
+                // Reset audio controls for new slide, wait for metadata
+                audioSeekBarPresenter.value = 0;
+                audioSeekBarPresenter.max = 100; // Default max until metadata loaded
+                audioSeekBarPresenter.disabled = true;
+                audioTimeDisplayPresenter.textContent = "0:00 / 0:00";
+
+                // Reset timer on first slide, start otherwise
+                if (data.currentSlide === 1 && data.isInitialLoad) { // Assuming an isInitialLoad flag for first message
+                   resetTimer();
+                } else if (data.currentSlide === 1 && !timerInterval) { // Or if timer hasn't started
+                   startTimer();
+                }
+
+
+            } else if (data.type === 'autoplayStateChange') {
+                autoplayStatusPresenter.textContent = data.isAutoplaying ? 'Playing' : 'Paused';
+                autoplayToggleBtnPresenter.textContent = data.isAutoplaying ? 'Pause' : 'Autoplay';
+                if (data.isAutoplaying && !timerInterval) { // Start timer if autoplay starts and timer isn't running
+                    // This might need refinement: when should timer truly start/stop with autoplay?
+                    // startTimer(); 
+                } else if (!data.isAutoplaying && timerInterval) {
+                    // stopTimer();
+                }
+            } else if (data.type === 'audioMetadataLoaded') {
+                console.log(`Presenter: audioMetadataLoaded received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}, Duration: ${data.duration}`);
+                // Ensure this metadata is for the current slide's audio
+                if (data.audioSrc === currentAudioSrc) {
+                    audioSeekBarPresenter.max = data.duration;
+                    audioSeekBarPresenter.value = data.currentTime;
+                    audioTimeDisplayPresenter.textContent = `${formatTime(data.currentTime)} / ${formatTime(data.duration)}`;
+                    audioSeekBarPresenter.disabled = false;
+                    console.log('Presenter: Audio seek bar ENABLED.');
+                } else {
+                    console.warn('Presenter: Received audioMetadataLoaded for a different audio source. Ignoring.');
+                }
+            } else if (data.type === 'audioTimeUpdate') {
+                // console.log(`Presenter: audioTimeUpdate received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}, CurrentTime: ${data.currentTime}`); // Optional: can be very verbose
+                 // Ensure this time update is for the current slide's audio
+                if (data.audioSrc === currentAudioSrc) {
+                    if (!audioSeekBarPresenter.disabled) { // Only update if not disabled (e.g. by error)
+                        audioSeekBarPresenter.value = data.currentTime;
+                        // Update duration as well, in case it wasn't set or changed (though unlikely for static files)
+                        if (data.duration && audioSeekBarPresenter.max !== data.duration) {
+                             audioSeekBarPresenter.max = data.duration;
+                        }
+                        audioTimeDisplayPresenter.textContent = `${formatTime(data.currentTime)} / ${formatTime(data.duration || audioSeekBarPresenter.max)}`;
+                    }
+                }
+            } else if (data.type === 'audioError') {
+                console.log(`Presenter: audioError received. currentAudioSrc: ${currentAudioSrc}, Message audioSrc: ${data.audioSrc}`);
+                if (data.audioSrc === currentAudioSrc) {
+                    console.warn('Presenter received audio error for:', data.audioSrc);
+                    audioSeekBarPresenter.disabled = true;
+                    audioSeekBarPresenter.value = 0;
+                    audioTimeDisplayPresenter.textContent = "Audio Error";
+                    console.log('Presenter: Audio seek bar DISABLED due to error.');
+                } else {
+                     console.warn('Presenter: Received audioError for a different audio source. Ignoring.');
+                }
+            }
+        };
+
+        prevBtnPresenter.addEventListener('click', () => {
+            channel.postMessage({ type: 'navigate', direction: 'prev' });
+        });
+
+        nextBtnPresenter.addEventListener('click', () => {
+            channel.postMessage({ type: 'navigate', direction: 'next' });
+        });
+        
+        autoplayToggleBtnPresenter.addEventListener('click', () => {
+            channel.postMessage({ type: 'toggleAutoplay' });
+        });
+
+        // Request initial state when presenter view loads
+        window.addEventListener('load', () => {
+            channel.postMessage({ type: 'requestInitialState' });
+            startTimer(); // Start timer when presenter view loads
+            // Initialize audio controls to disabled state
+            audioSeekBarPresenter.disabled = true;
+            audioTimeDisplayPresenter.textContent = "0:00 / 0:00";
+
+            // Add event listener for speaker notes textarea
+            speakerNotesPresenter.addEventListener('input', () => {
+                if (currentSlideNumberPresenter > 0 && currentSlideNumberPresenter <= speakerNotesData.length) {
+                    speakerNotesData[currentSlideNumberPresenter - 1] = speakerNotesPresenter.value;
+                    console.log(`Presenter: Notes for slide ${currentSlideNumberPresenter} updated:`, speakerNotesPresenter.value);
+                }
+            });
+
+            // Event listener for notes import button
+            importNotesBtn.addEventListener('click', () => {
+                notesFileInput.click(); // Trigger file input
+            });
+
+            // Event listener for file input change
+            notesFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            let newNotesRaw = e.target.result;
+                            // Replace literal \\n with actual newline characters
+                            newNotesRaw = newNotesRaw.replace(/\\n/g, '\n'); 
+                            const newNotesArray = newNotesRaw.split(/\r?\n/); // Split by new line
+                            
+                            // Update speakerNotesData
+                            speakerNotesData.length = 0; // Clear existing notes
+                            newNotesArray.forEach(note => speakerNotesData.push(note));
+
+                            // Refresh current slide's notes display
+                            if (currentSlideNumberPresenter > 0) {
+                                speakerNotesPresenter.value = speakerNotesData[currentSlideNumberPresenter - 1] || "No notes for this slide.";
+                            }
+                            importStatusMessage.textContent = `Successfully imported ${newNotesArray.length} lines of notes.`;
+                            console.log("Presenter: Notes imported from file.", speakerNotesData);
+                        } catch (error) {
+                            console.error("Error processing notes file:", error);
+                            importStatusMessage.textContent = "Error processing file.";
+                        }
+                        // Reset file input to allow importing the same file again if needed
+                        notesFileInput.value = null; 
+                    };
+                    reader.onerror = () => {
+                        console.error("Error reading notes file.");
+                        importStatusMessage.textContent = "Error reading file.";
+                        notesFileInput.value = null; 
+                    };
+                    reader.readAsText(file);
+                } else {
+                    importStatusMessage.textContent = "No file selected.";
+                }
+            });
+        });
+
+        // Added event listener for audio seek bar
+        audioSeekBarPresenter.addEventListener('input', () => {
+            if (!audioSeekBarPresenter.disabled) {
+                channel.postMessage({ 
+                    type: 'seekAudio', 
+                    time: parseFloat(audioSeekBarPresenter.value),
+                    audioSrc: currentAudioSrc // Send src to ensure main view seeks correct audio
+                });
+                // Optimistically update time display, main view will send `audioTimeUpdate` to confirm
+                audioTimeDisplayPresenter.textContent = `${formatTime(parseFloat(audioSeekBarPresenter.value))} / ${formatTime(parseFloat(audioSeekBarPresenter.max))}`;
+            }
+        });
+        // End added event listener
+
+        // --- Unified Keyboard Shortcuts for Presenter View ---
+        document.addEventListener('keydown', (event) => {
+            const targetTagName = event.target.tagName.toLowerCase();
+            if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select' || event.ctrlKey || event.altKey || event.metaKey) {
+                return;
+            }
+
+            switch (event.key) {
+                case ' ':
+                    event.preventDefault();
+                    autoplayToggleBtnPresenter.click();
+                    break;
+                case 'ArrowLeft':
+                    if (event.repeat) return; // リピートイベントは無視
+                    // 長押しタイマーを開始
+                    if (!arrowLeftKeyDownTimer) {
+                        arrowLeftKeyDownTimer = setTimeout(() => {
+                            // 長押しが検知された場合、シークバーが有効ならシーク処理を開始
+                            if (!audioSeekBarPresenter.disabled) {
+                                console.log('Presenter: Long press Left - Start Seeking Backwards. currentAudioSrc:', currentAudioSrc);
+                                performSeek(-seekAmount); // 最初のシーク
+                                if (continuousSeekTimer) clearInterval(continuousSeekTimer);
+                                continuousSeekTimer = setInterval(() => performSeek(-seekAmount), seekIntervalTimerDuration);
+                            }
+                            arrowLeftKeyDownTimer = null; // タイマーが発火したらクリア（長押し発生済みを示す）
+                        }, longPressDelay);
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (event.repeat) return; // リピートイベントは無視
+                    // 長押しタイマーを開始
+                    if (!arrowRightKeyDownTimer) {
+                        arrowRightKeyDownTimer = setTimeout(() => {
+                            // 長押しが検知された場合、シークバーが有効ならシーク処理を開始
+                            if (!audioSeekBarPresenter.disabled) {
+                                console.log('Presenter: Long press Right - Start Seeking Forwards. currentAudioSrc:', currentAudioSrc);
+                                performSeek(seekAmount); // 最初のシーク
+                                if (continuousSeekTimer) clearInterval(continuousSeekTimer);
+                                continuousSeekTimer = setInterval(() => performSeek(seekAmount), seekIntervalTimerDuration);
+                            }
+                            arrowRightKeyDownTimer = null; // タイマーが発火したらクリア（長押し発生済みを示す）
+                        }, longPressDelay);
+                    }
+                    break;
+            }
+        });
+
+        document.addEventListener('keyup', (event) => {
+            const targetTagName = event.target.tagName.toLowerCase();
+             if (targetTagName === 'input' || targetTagName === 'textarea' || targetTagName === 'select' || event.ctrlKey || event.altKey || event.metaKey) {
+                return;
+            }
+
+            switch (event.key) {
+                case 'ArrowLeft':
+                    if (arrowLeftKeyDownTimer) { // タイマーがまだ存在する場合＝短押し
+                        clearTimeout(arrowLeftKeyDownTimer);
+                        arrowLeftKeyDownTimer = null;
+                        if (!prevBtnPresenter.disabled) {
+                            prevBtnPresenter.click();
+                        }
+                    } else { // タイマーが存在しない＝長押しが発生してクリアされた後か、シークバーが無効だった
+                        if (continuousSeekTimer) {
+                            clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = null;
+                            console.log('Presenter: KeyUp Left - Stop Seeking Backwards');
+                        }
+                    }
+                    break;
+                case 'ArrowRight':
+                    if (arrowRightKeyDownTimer) { // タイマーがまだ存在する場合＝短押し
+                        clearTimeout(arrowRightKeyDownTimer);
+                        arrowRightKeyDownTimer = null;
+                        if (!nextBtnPresenter.disabled) {
+                            nextBtnPresenter.click();
+                        }
+                    } else { // タイマーが存在しない＝長押しが発生してクリアされた後か、シークバーが無効だった
+                        if (continuousSeekTimer) {
+                            clearInterval(continuousSeekTimer);
+                            continuousSeekTimer = null;
+                            console.log('Presenter: KeyUp Right - Stop Seeking Forwards');
+                        }
+                    }
+                    break;
+            }
+        });
+
+        function performSeek(amount) {
+            console.log(`Presenter: performSeek called with amount: ${amount}. SeekBar disabled: ${audioSeekBarPresenter.disabled}, currentAudioSrc: ${currentAudioSrc}`);
+            if (audioSeekBarPresenter.disabled || !currentAudioSrc) {
+                console.log('Presenter: performSeek returning early. SeekBar disabled or no currentAudioSrc.');
+                return;
+            }
+
+            let newTime = parseFloat(audioSeekBarPresenter.value) + amount;
+            const duration = parseFloat(audioSeekBarPresenter.max);
+
+            if (newTime < 0) newTime = 0;
+            if (newTime > duration) newTime = duration;
+
+            audioSeekBarPresenter.value = newTime; // Optimistic update
+            audioTimeDisplayPresenter.textContent = `${formatTime(newTime)} / ${formatTime(duration)}`;
+            
+            channel.postMessage({
+                type: 'seekAudio',
+                time: newTime,
+                audioSrc: currentAudioSrc
+            });
+            console.log(`Seeked to ${newTime} for ${currentAudioSrc}`);
+        }
+    </script>
+</body>
+</html>

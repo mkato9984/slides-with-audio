@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforce プレゼンテーション 01</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .slide {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+            transition: opacity 0.5s ease;
+        }
+        
+        .active {
+            display: block;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        
+        .controls button, .controls div {
+            padding: 8px 12px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .controls button:hover {
+            background-color: #444;
+        }
+        
+        .controls button:disabled {
+            background-color: #222;
+            cursor: not-allowed;
+        }
+        
+        .controls button.active {
+            background-color: #0066cc;
+        }
+        
+        .slide-counter {
+            background-color: #222;
+            pointer-events: none;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+
+        /* ローディングインジケーターのスタイル */
+        .loading-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 20px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .progress-info {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ローディングインジケーター -->
+    <div class="loading-container" id="loading-container">
+        <div class="spinner"></div>
+        <div>リソースを読み込み中...</div>
+        <div class="progress-info" id="progress-info">0/22 ロード完了</div>
+    </div>
+
+    <div class="slide-container" id="slide-container">
+        <!-- スライド画像はJSで挿入されます -->
+    </div>
+    
+    <div class="controls">
+        <button id="prev-btn" class="btn">前へ</button>
+        <button id="audio-btn" class="audio-btn">音声再生</button>
+        <button id="autoplay-btn" class="btn">自動再生</button>
+        <div id="slide-counter" class="slide-counter">1 / 11</div>
+        <button id="next-btn" class="btn">次へ</button>
+    </div>    <div class="notification" id="notification"></div>
+    
+    <script src="reset-slide-state.js"></script>
+    <script src="slide1-autoplay-fix.js"></script>
+    <script>
+        // スライド共通コアモジュール - プレゼンテーション状態管理
+        window.SlideshowCore = {
+            // 状態管理
+            state: {
+                totalSlides: 11,
+                currentSlide: 1,
+                autoplayEnabled: false,
+                audioPlaying: false,
+                isTransitioning: false,
+                isPresentationMode: false  // メイン/プレゼンター区別
+            },
+            
+            // タイマー管理
+            timers: {
+                autoplayTimeout: null,
+                transitionTimeout: null
+            },
+            
+            // 現在の音声要素
+            audio: {
+                current: null,
+                preloaded: []
+            },
+            
+            // 状態変更関数
+            setAutoplayState: function(enabled) {
+                this.state.autoplayEnabled = enabled;
+                window.globalAutoplayState = enabled;
+                localStorage.setItem('sf01_autoplayState', enabled ? 'active' : 'inactive');
+                console.log(`SlideshowCore: 自動再生状態を ${enabled ? '有効' : '無効'} に設定しました`);
+                return enabled;
+            },
+            
+            setSlide: function(slideNumber) {
+                if (slideNumber >= 1 && slideNumber <= this.state.totalSlides) {
+                    this.state.currentSlide = slideNumber;
+                    localStorage.setItem('sf01_currentSlide', slideNumber.toString());
+                    console.log(`SlideshowCore: スライドを ${slideNumber} に設定しました`);
+                    return true;
+                }
+                return false;
+            },
+            
+            setAudioPlaying: function(isPlaying) {
+                this.state.audioPlaying = isPlaying;
+                return isPlaying;
+            },
+            
+            stopAllTimers: function() {
+                if (this.timers.autoplayTimeout) {
+                    clearTimeout(this.timers.autoplayTimeout);
+                    this.timers.autoplayTimeout = null;
+                }
+                return true;
+            },
+            
+            // 初期化
+            initialize: function(isPresentationMode) {
+                this.state.isPresentationMode = isPresentationMode;
+                
+                // ローカルストレージから状態を復元
+                const storedAutoplayState = localStorage.getItem('sf01_autoplayState');
+                if (storedAutoplayState === 'active') {
+                    this.setAutoplayState(true);
+                }
+                
+                const storedSlide = localStorage.getItem('sf01_currentSlide');
+                if (storedSlide) {
+                    const slideNum = parseInt(storedSlide);
+                    if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= this.state.totalSlides) {
+                        this.setSlide(slideNum);
+                    }
+                }
+                
+                console.log('SlideshowCore: 初期化完了, プレゼンテーションモード:', isPresentationMode);
+                return true;
+            }
+        };
+        
+        // 従来の変数（互換性維持のため）
+        const totalSlides = window.SlideshowCore.state.totalSlides;
+        let currentSlide = window.SlideshowCore.state.currentSlide;
+        let autoplayMode = window.SlideshowCore.state.autoplayEnabled;
+        let autoplayTimeout = window.SlideshowCore.timers.autoplayTimeout;
+        let audioPlaying = window.SlideshowCore.state.audioPlaying;
+        let currentAudio = window.SlideshowCore.audio.current;
+        let isTransitioning = window.SlideshowCore.state.isTransitioning;
+        
+        // リソースのロード状態を追跡
+        let resourcesLoaded = 0;
+        const totalResources = totalSlides * 2; // 画像とオーディオファイル
+        // プリロードのための配列
+        let preloadedImages = [];
+        let preloadedAudios = [];
+        
+        // DOM要素
+        const loadingContainer = document.getElementById('loading-container');
+        const progressInfo = document.getElementById('progress-info');
+        const slideContainer = document.getElementById('slide-container');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const autoplayBtn = document.getElementById('autoplay-btn');
+        const audioBtn = document.getElementById('audio-btn');
+        const notification = document.getElementById('notification');
+          // 同期フラグ（内部変更を追跡するため）
+        let isInternalChange = false;
+        let syncInProgress = false;
+        
+        // 初期化機能
+        window.addEventListener('DOMContentLoaded', () => {
+            // コアモジュールの初期化（メインモードとして）
+            window.SlideshowCore.initialize(false);
+            
+            // ユーティリティフラグの初期化
+            window.isPlayingAudio = false;
+            window.isTogglingAudio = false;
+            window.isStoppingAudio = false;
+            window.isTogglingAutoplay = false;
+            
+            // グローバル変数の状態をコアモジュールと同期
+            window.globalAutoplayState = window.SlideshowCore.state.autoplayEnabled;
+            autoplayMode = window.SlideshowCore.state.autoplayEnabled;
+            currentSlide = window.SlideshowCore.state.currentSlide;
+            
+            console.log('コアモジュール初期化完了、現在の状態:', 
+                        '自動再生:', window.SlideshowCore.state.autoplayEnabled,
+                        'スライド:', window.SlideshowCore.state.currentSlide);
+              // 10秒後に強制的にローディング画面を閉じる
+            setTimeout(() => {
+                if (loadingContainer && loadingContainer.style.display !== 'none') {
+                    console.warn('ロードタイムアウト - 強制的に進行します');
+                    console.log(`現在のロード状況: ${resourcesLoaded}/${totalResources} (${Math.floor((resourcesLoaded / totalResources) * 100)}%)`);
+                    
+                    // もし読み込みが半分以上進んでいれば残りを強制的に完了扱いにする
+                    if (resourcesLoaded < totalResources && resourcesLoaded > 0) {
+                        console.log(`残りの ${totalResources - resourcesLoaded} リソースを強制的に完了扱いにします`);
+                        resourcesLoaded = totalResources;
+                        updateLoadingProgress();
+                    } else {
+                        // 直接ローディング画面を閉じる
+                        loadingContainer.style.opacity = 0;
+                        setTimeout(() => {
+                            loadingContainer.style.display = 'none';
+                        }, 500);
+                    }
+                }
+            }, 10000);
+            
+            // プリロード
+            preloadResources();
+            
+            // ローカルストレージからスライド番号を取得して表示
+            const storedSlide = localStorage.getItem('sf01_currentSlide');
+            if (storedSlide) {
+                const slideNum = parseInt(storedSlide);
+                if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides) {
+                    currentSlide = slideNum;
+                }
+            }
+              // スライドの初期化と表示
+            initializeSlides();
+            displaySlide(currentSlide);            // ページ読み込み時に自動再生ボタンの状態を確実にオフに設定する強化処理
+            console.log('ページ読み込み時: 自動再生モードを強制的に無効化します');
+            
+            // グローバル状態変数を確実にオフに
+            autoplayMode = false;
+            window.globalAutoplayState = false;
+            window.isAutoplayEnabled = false;
+            
+            // UIを確実に非アクティブに
+            if (autoplayBtn) {
+                autoplayBtn.classList.remove('active');
+                autoplayBtn.textContent = '自動再生';
+            }
+            
+            // ローカルストレージを確実にクリア
+            localStorage.setItem('sf01_autoplayState', 'inactive');
+            localStorage.removeItem('sf01_autoplayEnabled');
+            
+            // コアモジュールの状態も更新
+            window.SlideshowCore.setAutoplayState(false);
+            
+            // 100ms後にも状態を再確認（他のスクリプトで上書きされる可能性があるため）
+            setTimeout(() => {
+                // 再度すべての自動再生関連状態をオフに
+                autoplayMode = false;
+                window.globalAutoplayState = false;
+                window.SlideshowCore.state.autoplayEnabled = false;
+                
+                if (autoplayBtn) {
+                    autoplayBtn.classList.remove('active');
+                }
+                
+                console.log('遅延実行: 自動再生状態の再確認と修正完了');
+            }, 100);
+            
+            // ボタンイベントの設定
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 1 && !isTransitioning) {
+                    changeSlide(currentSlide - 1);
+                }
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides && !isTransitioning) {
+                    changeSlide(currentSlide + 1);
+                }
+            });
+            
+            autoplayBtn.addEventListener('click', toggleAutoplay);
+            audioBtn.addEventListener('click', toggleAudio);
+            
+            // キーボードイベント
+            window.addEventListener('keydown', handleKeyDown);
+            
+            // タッチスワイプの処理を追加
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            document.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50; // スワイプと判断する最小ピクセル数
+                
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // 左スワイプ → 次のスライド
+                    if (currentSlide < totalSlides && !isTransitioning) {
+                        changeSlide(currentSlide + 1);
+                    }
+                }
+                
+                if (touchEndX > touchStartX + swipeThreshold) {
+                    // 右スワイプ → 前のスライド
+                    if (currentSlide > 1 && !isTransitioning) {
+                        changeSlide(currentSlide - 1);
+                    }
+                }
+            }
+              // ローカルストレージのイベントリスナー（プレゼンター画面からの同期）
+            window.addEventListener('storage', (e) => {
+                if (syncInProgress) return; // 同期中は処理しない
+                
+                // スライド番号の変更
+                if (e.key === 'sf01_currentSlide') {
+                    const slideNum = parseInt(e.newValue);
+                    if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides && slideNum !== currentSlide) {
+                        changeSlide(slideNum, true);
+                    }
+                }
+                // 同期コマンドの処理
+                /* else if (e.key === 'sf01_syncCommand' || e.key === 'sf01_syncCommandFromPresenter') {
+                    try {
+                        const syncData = JSON.parse(e.newValue);
+                        console.log('同期コマンドを受信:', syncData);
+                        
+                        // action プロパティがある場合は、それも使用する
+                        if (syncData.action && syncData.action === 'autoplay') {
+                            // autoplayアクションを処理
+                            const newAutoplayState = syncData.state === 'active';
+                            if (autoplayMode !== newAutoplayState) {
+                                // 自動再生モードを直接変更せず、toggleAutoplay経由で変更
+                                if ((newAutoplayState && !autoplayMode) || (!newAutoplayState && autoplayMode)) {
+                                    console.log('自動再生状態を同期中:', newAutoplayState ? '有効' : '無効');
+                                    toggleAutoplay(true); // 同期処理であることを示すフラグを渡す
+                                }
+                            }
+                        } else {
+                            // 従来のコマンド処理
+                            handleSyncCommand(syncData);
+                        }
+                    } catch (error) {
+                        console.error('同期コマンドの解析に失敗しました:', error);
+                    }
+                } */
+                
+                // 音声コマンドの処理
+                else if (e.key === 'sf01_audioCommand' || e.key === 'sf01_audioCommandFromPresenter') {
+                    try {
+                        const audioCommand = JSON.parse(e.newValue);
+                        console.log('Audio command received:', audioCommand);
+                        handleAudioCommand(audioCommand);
+                    } catch (error) {
+                        console.error('音声コマンドの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 自動再生状態の処理
+                else if (e.key === 'sf01_autoplayState') {
+                    try {
+                        const stateValue = e.newValue;
+                        console.log('Autoplay state received from storage:', stateValue);
+                        const newAutoplayMode = stateValue === 'active';
+
+                        // 状態が実際に変更された場合のみ処理
+                        if (window.SlideshowCore.state.autoplayEnabled !== newAutoplayMode) {
+                            autoplayMode = newAutoplayMode; // グローバル変数を更新
+                            window.SlideshowCore.setAutoplayState(newAutoplayMode); // コアモジュールの状態を更新
+                            window.globalAutoplayState = newAutoplayMode; // グローバル状態フラグも更新
+                            
+                            updateAutoplayUI(newAutoplayMode); // ボタンのテキストとクラスを更新
+
+                            if (!newAutoplayMode) {
+                                // 自動再生がオフになった場合、関連するタイマーをクリア
+                                if (autoplayTimeout) {
+                                    clearTimeout(autoplayTimeout);
+                                    autoplayTimeout = null;
+                                    console.log('Autoplay disabled via sync, cleared autoplayTimeout.');
+                                }
+                                if (window.SlideshowCore && typeof window.SlideshowCore.stopAllTimers === 'function') {
+                                    window.SlideshowCore.stopAllTimers();
+                                }
+                                // 現在再生中の音声があれば停止 (設計による、ここでは停止しない)
+                                // if (audioPlaying) {
+                                //     stopCurrentAudio(true); // keepAutoplay = true で自動再生サイクルのみ停止
+                                // }
+                            } else {
+                                // 自動再生がオンになった場合
+                                // もし音声が再生されておらず、現在のスライドで音声を再生すべき状況なら再生
+                                // (例: スライド遷移直後ではない、手動で停止された後ではないなど)
+                                // このロジックは複雑になるため、基本的にはスライド変更時や音声終了時に処理される
+                                console.log('Autoplay enabled via sync. Audio will play as per slide/audio logic.');
+                                // 必要であれば playCurrentAudio() を検討するが、副作用に注意
+                            }
+                            showNotification(newAutoplayMode ? '自動再生 オン (同期)' : '自動再生 オフ (同期)');
+                        }
+                    } catch (error) {
+                        console.error('自動再生状態の同期処理中にエラーが発生しました:', error);
+                    }
+                }
+            });
+        });        // リソースをプリロード
+        function preloadResources() {
+            console.log('リソースのプリロード開始');
+            
+            // 最大読み込み待機時間を設定（10秒）
+            const loadTimeout = setTimeout(() => {
+                console.warn('リソースの読み込みタイムアウト - 強制的に進行します');
+                // 読み込みが終わらない場合は強制的に進行
+                loadingContainer.style.opacity = 0;
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                }, 500);
+            }, 10000);
+            
+            // 画像のプリロード
+            for (let i = 1; i <= totalSlides; i++) {
+                const img = new Image();
+                // 2桁のファイル名フォーマットに対応（01, 02, ...）
+                const slidePadded = i.toString().padStart(2, '0');
+                const imgSrc = `salesforce_slides/salesforce_slides01/slide${slidePadded}.png`;
+                console.log(`画像を読み込み: ${imgSrc}`);
+                
+                img.onload = () => {
+                    console.log(`画像${i}の読み込み完了`);
+                    resourceLoaded();
+                };
+                img.onerror = (e) => {
+                    console.error(`画像${i}の読み込みエラー:`, e);
+                    resourceError(e);
+                };
+                
+                img.src = imgSrc;
+                preloadedImages.push(img);
+            }
+            
+            // 音声ファイルは最悪の場合でも読み込み扱いにする関数
+            const forceAudioLoaded = (index, maxWait) => {
+                return setTimeout(() => {
+                    console.warn(`オーディオ${index}の読み込みが応答しないため強制完了とします`);
+                    resourceLoaded();
+                }, maxWait);
+            };
+            
+            // まず無音ファイル（スライド1用）をロード
+            const audioPath0 = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_0.wav`;
+            console.log(`オーディオファイルを読み込み: ${audioPath0}`);
+            const silentAudio1 = new Audio();
+            
+            // タイムアウト用のタイマーを設定
+            const timer0 = forceAudioLoaded(0, 3000);
+            
+            // 音声の読み込み追跡
+            silentAudio1.addEventListener('canplaythrough', () => {
+                clearTimeout(timer0); // タイムアウトをクリア
+                console.log(`オーディオ0の読み込み完了`);
+                resourceLoaded();
+            }, { once: true }); // once: true で1回だけ実行
+              silentAudio1.addEventListener('error', (e) => {
+                clearTimeout(timer0); // タイムアウトをクリア
+                console.error(`オーディオ0の読み込みエラー:`, e);
+                resourceError(e);
+                
+                // エラー時でも自動再生モードが有効であれば次のスライドに進む
+                if (autoplayMode && currentSlide === 1) {
+                    console.log('音声エラーが発生しましたが、自動再生モードなので次のスライドに進みます。');
+                    autoplayTimeout = setTimeout(() => {
+                        if (currentSlide < totalSlides && autoplayMode) {
+                            changeSlide(currentSlide + 1);
+                        }
+                    }, 2000);
+                }
+            }, { once: true });
+              // スライド1終了時のイベント
+            silentAudio1.addEventListener('ended', function() {
+                console.log('スライド1の音声が終了しました。状態:', {
+                    autoplayMode,
+                    currentSlide,
+                    globalState: window.globalAutoplayState,
+                    audioSource: localStorage.getItem('sf01_audioSource')
+                });
+                
+                if (autoplayMode && currentSlide === 1) {
+                    console.log('スライド1の音声が終了しました。自動再生モードなので次のスライドに進みます。');
+                    
+                    // 既存のタイムアウトをクリア
+                    if (autoplayTimeout) {
+                        clearTimeout(autoplayTimeout);
+                    }
+                    
+                    // 新しいタイムアウト
+                    autoplayTimeout = setTimeout(() => {
+                        if (currentSlide < totalSlides && autoplayMode) {
+                            console.log('スライド1からスライド2に移動します');
+                            changeSlide(currentSlide + 1);
+                        }
+                    }, 1500);
+                }
+            });
+            
+            // ソースを設定して読み込み開始
+            silentAudio1.src = audioPath0;
+            silentAudio1.preload = 'auto';
+            silentAudio1.load(); // 明示的に読み込みを開始
+            
+            // 1枚目のスライドに無音割り当て
+            preloadedAudios.push(silentAudio1);
+            
+            // スライド2～10の音声
+            for (let i = 1; i <= 9; i++) {
+                const audioPath = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_${i}.wav`;
+                console.log(`オーディオファイルを読み込み: ${audioPath}`);
+                const audio = new Audio();
+                
+                // タイムアウト用のタイマー
+                const timerId = forceAudioLoaded(i, 3000);
+                
+                // 音声の読み込み追跡
+                audio.addEventListener('canplaythrough', () => {
+                    clearTimeout(timerId); // タイムアウトをクリア
+                    console.log(`オーディオ${i}の読み込み完了`);
+                    resourceLoaded();
+                }, { once: true });
+                
+                audio.addEventListener('error', (e) => {
+                    clearTimeout(timerId); // タイムアウトをクリア
+                    console.error(`オーディオ${i}の読み込みエラー:`, e);
+                    resourceError(e);
+                }, { once: true });
+                
+                // 音声終了時のイベント
+                audio.addEventListener('ended', function() {
+                    if (autoplayMode && currentSlide === i + 1) {
+                        autoplayTimeout = setTimeout(() => {
+                            if (currentSlide < totalSlides) {
+                                changeSlide(currentSlide + 1);
+                            } else {
+                                toggleAutoplay();
+                                showNotification('プレゼンテーションが終了しました');
+                            }
+                        }, 1500);
+                    }
+                });
+                
+                // ソースを設定して読み込み
+                audio.src = audioPath;
+                audio.preload = 'auto';
+                audio.load();
+                
+                preloadedAudios.push(audio);
+            }
+            
+            // 最後のスライド用無音ファイル
+            const audioPath11 = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_11.wav`;
+            console.log(`オーディオファイルを読み込み: ${audioPath11}`);
+            const silentAudio11 = new Audio();
+            
+            // タイムアウト用のタイマー
+            const timer11 = forceAudioLoaded(11, 3000);
+            
+            // 音声読み込み追跡
+            silentAudio11.addEventListener('canplaythrough', () => {
+                clearTimeout(timer11); // タイムアウトをクリア
+                console.log(`オーディオ11の読み込み完了`);
+                resourceLoaded();
+            }, { once: true });
+            
+            silentAudio11.addEventListener('error', (e) => {
+                clearTimeout(timer11); // タイムアウトをクリア
+                console.error(`オーディオ11の読み込みエラー:`, e);
+                resourceError(e);
+            }, { once: true });
+            
+            // ソース設定して読み込み
+            silentAudio11.src = audioPath11;
+            silentAudio11.preload = 'auto';
+            silentAudio11.load();
+            
+            preloadedAudios.push(silentAudio11);
+        }        // リソースが読み込まれたときの処理
+        function resourceLoaded() {
+            resourcesLoaded++;
+            console.log(`リソースの読み込み完了: 現在 ${resourcesLoaded}/${totalResources}`);
+            updateLoadingProgress();
+        }
+        
+        // リソース読み込みエラーの処理
+        function resourceError(e) {
+            console.error('リソースの読み込みに失敗しました:', e);
+            resourcesLoaded++;
+            console.log(`リソースの読み込みエラー: 現在 ${resourcesLoaded}/${totalResources}`);
+            updateLoadingProgress();
+        }
+          // ローディングの進捗を更新
+        function updateLoadingProgress() {
+            const percentComplete = Math.floor((resourcesLoaded / totalResources) * 100);
+            progressInfo.textContent = `${resourcesLoaded}/${totalResources} ロード完了 (${percentComplete}%)`;
+            console.log(`リソース読み込み進捗: ${resourcesLoaded}/${totalResources}`);
+            
+            // すべてのリソースがロードされたらローディング画面を非表示
+            if (resourcesLoaded >= totalResources) {
+                console.log('すべてのリソースがロードされました！ローディングを終了します');
+                setTimeout(() => {
+                    loadingContainer.style.opacity = 0;
+                    setTimeout(() => {
+                        loadingContainer.style.display = 'none';
+                    }, 500);
+                }, 500);
+            }
+        }
+        
+        // スライドの初期化
+        function initializeSlides() {
+            // スライドコンテナをクリア
+            slideContainer.innerHTML = '';
+            
+            // すべてのスライドを追加
+            for (let i = 1; i <= totalSlides; i++) {
+                const slidePadded = i.toString().padStart(2, '0');
+                const imgSrc = `salesforce_slides/salesforce_slides01/slide${slidePadded}.png`;
+                const slide = document.createElement('img');
+                slide.className = `slide slide-${i}`;
+                slide.src = imgSrc;
+                slide.alt = `スライド ${i}`;
+                slideContainer.appendChild(slide);
+            }
+        }
+        
+        // スライドの表示
+        function displaySlide(slideNumber) {
+            // すべてのスライドを非表示
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(slide => {
+                slide.style.opacity = 0;
+                setTimeout(() => {
+                    slide.classList.remove('active');
+                }, 300);
+            });
+            
+            // 指定したスライドを表示
+            setTimeout(() => {
+                const targetSlide = document.querySelector(`.slide-${slideNumber}`);
+                if (targetSlide) {
+                    targetSlide.classList.add('active');
+                    setTimeout(() => {
+                        targetSlide.style.opacity = 1;
+                    }, 50);
+                }
+            }, 300);
+            
+            // スライドカウンターを更新
+            slideCounter.textContent = `${slideNumber} / ${totalSlides}`;
+            
+            // ローカルストレージに現在のスライド番号を保存（同期のため）
+            localStorage.setItem('sf01_currentSlide', slideNumber.toString());
+            
+            // ボタンの有効/無効状態を更新
+            prevBtn.disabled = slideNumber === 1;
+            nextBtn.disabled = slideNumber === totalSlides;
+        }        // スライド切り替え - コアモジュールを使用
+        function changeSlide(slideNumber, isFromSync = false) {
+            // 境界チェックとトランジション中のチェック
+            if (slideNumber < 1 || slideNumber > window.SlideshowCore.state.totalSlides || 
+                window.SlideshowCore.state.isTransitioning) {
+                console.log('スライド変更をスキップします (範囲外または切替中)');
+                return;
+            }
+            
+            console.log(`スライド変更: ${currentSlide} → ${slideNumber} (同期元: ${isFromSync ? 'プレゼンター' : 'メイン'})`);
+            
+            // コアモジュールで状態を更新
+            window.SlideshowCore.state.isTransitioning = true;
+            isTransitioning = true;
+            
+            // 内部変更フラグを設定
+            if (!isFromSync) {
+                // window.SyncModule.internalChange = true;
+                isInternalChange = true;
+            }
+            
+            // 現在の自動再生状態を確実に保存
+            const wasAutoplayEnabled = window.SlideshowCore.state.autoplayEnabled || window.globalAutoplayState === true;
+            const wasAudioPlaying = window.SlideshowCore.state.audioPlaying;
+            
+            try {
+                // 現在の音声を停止（自動再生の状態は維持）
+                if (currentAudio && !currentAudio.paused) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    currentAudio.onended = null;
+                    currentAudio.onerror = null;
+                    
+                    // 状態を更新
+                    window.SlideshowCore.setAudioPlaying(false);
+                    audioPlaying = false;
+                    audioBtn.classList.remove('active');
+                    
+                    console.log('現在の音声を停止しました');
+                }
+                
+                // 再生関連のロックを解除
+                window.isPlayingAudio = false;
+                window.isStoppingAudio = false;
+                
+                // タイマーをクリア
+                window.SlideshowCore.stopAllTimers();
+                if (autoplayTimeout) {
+                    clearTimeout(autoplayTimeout);
+                    autoplayTimeout = null;
+                }                // 重要: 自動再生モードの状態を確実に維持（強化版）
+                // 全ての状態を確実に一貫させる
+                window.SlideshowCore.setAutoplayState(wasAutoplayEnabled);
+                window.globalAutoplayState = wasAutoplayEnabled;
+                autoplayMode = wasAutoplayEnabled;
+                localStorage.setItem('sf01_autoplayState', wasAutoplayEnabled ? 'active' : 'inactive');
+                
+                // UI状態を更新
+                updateAutoplayUI(wasAutoplayEnabled);
+                
+                // デバッグログを追加
+                console.log(`スライド変更中の自動再生状態: ${wasAutoplayEnabled ? '有効' : '無効'} (維持されました)`);
+                console.log(`自動再生状態: core=${window.SlideshowCore.state.autoplayEnabled}, global=${window.globalAutoplayState}, local=${localStorage.getItem('sf01_autoplayState')}`);
+                
+                // スライド変更中に自動再生状態が変わる場合の予防措置
+                // タイミングの問題を回避するために少し遅延させて再度確認
+                setTimeout(() => {
+                    if (window.SlideshowCore.state.autoplayEnabled !== wasAutoplayEnabled) {
+                        console.warn('スライド変更後に自動再生状態の不一致を検出。修正します。');
+                        window.SlideshowCore.setAutoplayState(wasAutoplayEnabled);
+                        window.globalAutoplayState = wasAutoplayEnabled;
+                        autoplayMode = wasAutoplayEnabled;
+                        updateAutoplayUI(wasAutoplayEnabled);
+                    }
+                }, 100);
+                } catch (error) {
+                console.error('スライド変更中にエラーが発生しました:', error);
+                // エラー時も状態を維持
+                window.SlideshowCore.setAutoplayState(wasAutoplayEnabled);
+                autoplayMode = wasAutoplayEnabled;
+            }
+            
+            // コアモジュールでスライド番号を更新し、UI更新
+            window.SlideshowCore.setSlide(slideNumber);
+            currentSlide = slideNumber;
+            displaySlide(currentSlide);
+            
+            // オーディオ要素の確認
+            if (!preloadedAudios[currentSlide - 1]) {
+                console.warn(`スライド ${currentSlide} のオーディオが見つかりません`);
+            }
+            
+            // 自動再生モードの場合の処理予約
+            if (autoplayMode) {
+                console.log(`自動再生モード: スライド ${currentSlide} の音声再生を準備中`);
+            }
+            
+            // トランジション完了後の処理
+            setTimeout(() => {
+                // 状態フラグをリセット
+                window.SlideshowCore.state.isTransitioning = false;
+                isTransitioning = false;
+                // window.SyncModule.internalChange = false;
+                isInternalChange = false;
+                
+                console.log('スライド変更トランジション完了');
+                
+                // 自動再生状態を再確認
+                const currentAutoplayState = window.SlideshowCore.state.autoplayEnabled || window.globalAutoplayState === true;
+                autoplayMode = currentAutoplayState;
+                
+                // UI状態を確実に更新
+                updateAutoplayUI(autoplayMode);
+                
+                // 自動再生モードが有効で、音声が再生されていない場合は音声を再生
+                if (autoplayMode && !window.SlideshowCore.state.audioPlaying) {
+                    console.log('自動再生モード: 新しいスライドの音声を再生します');
+                    setTimeout(() => {
+                        try {
+                            if (!window.SlideshowCore.state.audioPlaying && window.SlideshowCore.state.autoplayEnabled) {
+                                playCurrentAudio();
+                            }
+                        } catch (error) {
+                            console.error('音声再生中にエラーが発生しました:', error);
+                        }
+                    }, 200);
+                }
+            }, 500);
+              // 同期処理
+            if (!isFromSync) {
+                // window.SyncModule.syncSlide(slideNumber);
+            }
+              // カスタムイベントを発火させて自動再生モニターに通知（詳細情報を追加）
+            document.dispatchEvent(new CustomEvent('slideChanged', { 
+                detail: { 
+                    from: currentSlide, 
+                    to: slideNumber,
+                    autoplayEnabled: window.SlideshowCore.state.autoplayEnabled,
+                    globalState: window.globalAutoplayState,
+                    localStorageState: localStorage.getItem('sf01_autoplayState'),
+                    uiState: autoplayBtn.classList.contains('active'),
+                    autoplayMode: autoplayMode,
+                    timestamp: new Date().toISOString(),
+                    source: isFromSync ? 'sync' : 'user'
+                }
+            }));        }
+          // 音声の再生 - コアモジュールと統合
+        function playCurrentAudio() {
+            try {
+                if (window.currentAudio && !window.currentAudio.paused) {
+                    window.currentAudio.pause();
+                    window.currentAudio.currentTime = 0;
+                }
+
+                const slideIndex = window.currentSlide - 1; // 0始まりのインデックス
+                const totalSlidesAvailable = 11; 
+
+                if (slideIndex >= 0 && slideIndex < totalSlidesAvailable) {
+                    let audioFileNameIndex;
+                    if (slideIndex === 10 && window.currentSlide === 11) { // スライド11 (slideIndex 10) の場合
+                        audioFileNameIndex = 11; // salesforce_audio_11.wav を使用
+                    } else {
+                        audioFileNameIndex = slideIndex; // それ以外は slideIndex をそのまま使用 (0-9)
+                    }
+                    const audioPath = `salesforce_slides/salesforce_slides01/audio/salesforce_audio_${audioFileNameIndex}.wav`;
+                    window.currentAudio = new Audio(audioPath);
+                    window.currentAudio.play()
+                        .then(() => {
+                            console.log(`スライド ${window.currentSlide} の音声 (${audioPath}) を再生開始`);
+                            audioPlaying = true;
+                            updateAudioButtonUI(); 
+                            // 自動再生が有効なら、音声終了後に次のスライドへ
+                            if (autoplayMode) {
+                                window.currentAudio.onended = () => {
+                                    if (autoplayMode && audioPlaying) { // 再生中に停止されていないか確認
+                                        console.log(`スライド ${window.currentSlide} の音声終了、自動再生により次へ`);
+                                        if (window.currentSlide < (window.totalSlides || 11)) {
+                                            changeSlide(window.currentSlide + 1);
+                                        } else {
+                                            // 最終スライドの音声終了後、自動再生を停止するかどうか
+                                            // toggleAutoplay(); // 例えば自動再生をオフにする
+                                            console.log("最終スライドの音声が終了しました。");
+                                        }
+                                    }
+                                };
+                            }
+                        })
+                        .catch(error => {
+                            console.error(`音声ファイル ${audioPath} の再生に失敗しました:`, error);
+                            audioPlaying = false;
+                            updateAudioButtonUI();
+                        });
+                } else {
+                    console.log(`スライド ${window.currentSlide} に対応する音声はありません。`);
+                    audioPlaying = false;
+                    updateAudioButtonUI();
+                }
+            } catch (error) {
+                console.error('playCurrentAudio でエラー:', error);
+                audioPlaying = false;
+                updateAudioButtonUI();
+            }
+        }
+        
+        // 音声ボタンを点滅させてユーザーの注意を引く
+        function blinkAudioButton() {
+            let blinkCount = 0;
+            const maxBlinks = 3;
+            const blinkInterval = setInterval(() => {
+                audioBtn.style.backgroundColor = blinkCount % 2 === 0 ? '#e74c3c' : '#333';
+                blinkCount++;
+                
+                if (blinkCount >= maxBlinks * 2) {
+                    clearInterval(blinkInterval);
+                    audioBtn.style.backgroundColor = '';
+                }
+            }, 300);
+        }
+
+        // 現在の音声を停止
+        function stopCurrentAudio(keepAutoplay = false) {
+            // 音声停止処理中のフラグ
+            if (window.isStoppingAudio) {
+                console.log("音声停止処理が既に進行中です。");
+                return;
+            }
+            
+            window.isStoppingAudio = true;
+            console.log('stopCurrentAudio 呼び出し');
+
+            if (currentAudio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    console.log('音声を停止しました。');
+                } catch (e) {
+                    console.error("音声停止中にエラー:", e);
+                }
+            }
+            audioPlaying = false;
+            updateAudioButtonUI(); // UIを更新
+            
+            // 自動再生モードで、かつ keepAutoplay が false の場合、自動再生タイマーも停止
+            if (autoplayMode && !keepAutoplay) {
+                console.log("自動再生中の音声を停止したため、自動再生も一時停止します。");
+                // 必要であれば toggleAutoplay() を呼び出して自動再生自体をオフにするか、
+                // または SlideshowCore のタイマーをクリアする
+                if (window.SlideshowCore && typeof window.SlideshowCore.stopAllTimers === 'function') {
+                    window.SlideshowCore.stopAllTimers();
+                }
+            }
+
+            // 終了時には常にフラグをリセット
+            setTimeout(() => {
+                window.isStoppingAudio = false;
+            }, 100);
+        }
+
+        // 音声再生のトグル
+        function toggleAudio(isFromSync = false) {
+            if (window.isTogglingAudio) {
+                console.log("音声切り替え処理が既に進行中です。");
+                return;
+            }
+            window.isTogglingAudio = true;
+            console.log(`toggleAudio呼び出し (同期から: ${isFromSync})`);
+
+            if (audioPlaying) {
+                stopCurrentAudio();
+                showNotification('音声停止');
+            } else {
+                playCurrentAudio();
+                showNotification('音声再生');
+            }
+            // audioPlaying の状態は playCurrentAudio/stopCurrentAudio内で更新される想定
+            // updateAudioButtonUI(); // UI更新は各関数に任せる
+
+            if (!isFromSync) {
+                // sendSyncCommand({ type: 'audio', action: audioPlaying ? 'play' : 'stop' });
+            }
+            setTimeout(() => {
+                window.isTogglingAudio = false;
+            }, 100);
+        }
+
+        // 自動再生のトグル
+        function toggleAutoplay(isFromSync = false) {
+            if (window.isTogglingAutoplay) {
+                console.log("自動再生切り替え処理が既に進行中です。");
+                return;
+            }
+            window.isTogglingAutoplay = true;
+            console.log(`toggleAutoplay呼び出し (同期から: ${isFromSync})`);
+
+            autoplayMode = !autoplayMode;
+            window.SlideshowCore.setAutoplayState(autoplayMode); // コアモジュールの状態を更新
+            window.globalAutoplayState = autoplayMode; // グローバル状態も更新
+            localStorage.setItem('sf01_autoplayState', autoplayMode ? 'active' : 'inactive');
+
+
+            updateAutoplayUI(autoplayMode);
+
+            if (autoplayMode) {
+                showNotification('自動再生 オン');
+                // 現在のスライドの音声を再生開始、または次のスライドへ
+                if (!audioPlaying) {
+                    playCurrentAudio(); // 音声が停止していれば再生
+                } else {
+                    // 音声が再生中の場合、その終了を待つか、即座に次のスライドに進むか
+                    // playCurrentAudio内のonendedで処理される想定
+                }
+            } else {
+                showNotification('自動再生 オフ');
+                if (autoplayTimeout) {
+                    clearTimeout(autoplayTimeout);
+                    autoplayTimeout = null;
+                }
+                // 必要であれば現在の音声も停止する (設計による)
+                // stopCurrentAudio(true); // 自動再生はオフにするが、手動での音声再生は止めない場合
+            }
+
+            if (!isFromSync) {
+                // sendSyncCommand({ type: 'autoplay', action: autoplayMode ? 'start' : 'stop' });
+            }
+            setTimeout(() => {
+                window.isTogglingAutoplay = false;
+            }, 100);
+        }
+
+        // 音声ボタンのUIを更新
+        function updateAudioButtonUI() {
+            if (audioPlaying) {
+                audioBtn.textContent = '音声停止';
+                audioBtn.classList.add('active');
+            } else {
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+            }
+        }
+
+        // 自動再生ボタンのUIを更新
+        function updateAutoplayUI(isAutoplayEnabled) {
+            autoplayMode = isAutoplayEnabled; // グローバル変数も同期
+            window.globalAutoplayState = isAutoplayEnabled; // グローバル状態も同期
+            window.SlideshowCore.setAutoplayState(isAutoplayEnabled); // コアモジュールの状態も更新
+
+            if (isAutoplayEnabled) {
+                autoplayBtn.textContent = '自動再生中';
+                autoplayBtn.classList.add('active');
+            } else {
+                autoplayBtn.textContent = '自動再生';
+                autoplayBtn.classList.remove('active');
+            }
+            console.log(`updateAutoplayUI: 自動再生状態を ${isAutoplayEnabled ? '有効' : '無効'} に更新しました`);
+        }
+
+        // キーボード操作
+        function handleKeyDown(e) {
+            if (isTransitioning) return;
+
+            if (e.key === 'ArrowRight') {
+                if (currentSlide < totalSlides) {
+                    changeSlide(currentSlide + 1);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                if (currentSlide > 1) {
+                    changeSlide(currentSlide - 1);
+                }
+            } else if (e.key === ' ') { // スペースキーで音声再生/停止
+                toggleAudio();
+                e.preventDefault(); // デフォルトのスクロール動作などを防ぐ
+            } else if (e.key.toLowerCase() === 'a') { // 'A'キーで自動再生オン/オフ
+                toggleAutoplay();
+            }
+        }
+
+        // 通知の表示
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+        
+        // 音声コマンドの処理 (プレースホルダー)
+        function handleAudioCommand(command) {
+            console.log('handleAudioCommand received:', command);
+            // if (command.action === 'play' && !audioPlaying) {
+            //     toggleAudio(true);
+            // } else if (command.action === 'stop' && audioPlaying) {
+            //     toggleAudio(true);
+            // } else if (command.action === 'seek') {
+            //     // seekTo(command.time);
+            // }
+        }
+    </script>
+</body>
+</html>

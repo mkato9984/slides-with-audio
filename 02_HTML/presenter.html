@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレゼンターモード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: grid;
+            grid-template-rows: 60px 1fr 200px;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #1a2530;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: white;
+        }
+        
+        .timer {
+            font-size: 22px;
+            font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .preview-container {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .preview-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .current-slide-preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .next-slide-preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .slide-image {
+            max-width: 100%;
+            max-height: 90%;
+            object-fit: contain;
+        }
+        
+        .next-label {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(52, 152, 219, 0.7);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .notes-container {
+            background-color: #34495e;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            overflow-y: auto;
+        }
+        
+        .notes-header {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+        
+        .notes-content {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        
+        .controls {
+            background-color: #1a2530;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s ease;
+            min-width: 100px;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .slide-counter {
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: center;
+            color: white;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.1);
+            height: 5px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: #3498db;
+            width: 0;
+        }
+        
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 20px;
+        }
+        
+        .audio-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s ease;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .audio-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .audio-btn.active {
+            background-color: #2ecc71;
+        }
+        
+        .audio-btn.active:hover {
+            background-color: #27ae60;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: auto;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 2000;
+            animation: fadeInOut 3s ease-in-out;
+            pointer-events: none;
+            opacity: 0;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification">通知メッセージ</div>
+    
+    <div class="header">
+        <h1>プレゼンター画面</h1>
+        <div class="timer" id="timer">00:00</div>
+    </div>
+    
+    <div class="main-content">
+        <div class="preview-container">
+            <div class="preview-header">現在のスライド</div>
+            <div class="current-slide-preview" id="current-slide-preview">
+                <img src="" alt="現在のスライド" class="slide-image" id="current-slide-image">
+            </div>
+        </div>
+        
+        <div class="preview-container">
+            <div class="preview-header">次のスライド</div>
+            <div class="next-slide-preview" id="next-slide-preview">
+                <div class="next-label">次</div>
+                <img src="" alt="次のスライド" class="slide-image" id="next-slide-image">
+            </div>
+        </div>
+        
+        <div class="notes-container">
+            <div class="notes-header">スライドノート</div>
+            <div class="notes-content" id="notes-content">
+                ノートが表示されます...
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="audio-controls">
+            <button id="audio-btn" class="audio-btn">音声再生</button>
+        </div>
+        <button id="prev-btn" class="btn" disabled>前へ</button>
+        <span id="slide-counter" class="slide-counter">1 / 6</span>
+        <button id="next-btn" class="btn">次へ</button>
+        <button id="autoplay-btn" class="btn">自動再生</button>
+        <button id="sync-btn" class="btn">同期</button>
+    </div>
+
+    <script>
+        // スライド関連の変数
+        const totalSlides = 6;
+        let currentSlide = 1;
+        let timerInterval;
+        let startTime;
+        let elapsedSeconds = 0;
+        let slideNotes = {};
+        let autoplayMode = false;
+        let audioPlaying = false;
+        let autoplayTimeout = null;
+        
+        // DOM要素
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const slideCounter = document.getElementById('slide-counter');
+        const timer = document.getElementById('timer');
+        const notesContent = document.getElementById('notes-content');
+        const currentSlideImage = document.getElementById('current-slide-image');
+        const nextSlideImage = document.getElementById('next-slide-image');
+        const autoplayBtn = document.getElementById('autoplay-btn');
+        const syncBtn = document.getElementById('sync-btn');
+        const notification = document.getElementById('notification');
+        const audioBtn = document.getElementById('audio-btn');
+        
+        // 同期フラグ（内部変更を追跡するため）
+        let isInternalChange = false;
+        let syncInProgress = false;
+        
+        // 初期化機能
+        window.addEventListener('DOMContentLoaded', () => {
+            // スライドのノートを読み込む
+            loadNotes();
+            
+            // ローカルストレージからスライド番号を取得して表示
+            const storedSlide = localStorage.getItem('currentSlide');
+            if (storedSlide) {
+                const slideNum = parseInt(storedSlide);
+                if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides) {
+                    currentSlide = slideNum;
+                }
+            }
+            
+            // 前のページ（メインウィンドウ）に現在画面が開いていることを通知
+            syncWithMainWindow();
+            
+            // ローカルストレージの変更を監視（メイン画面からの同期）
+            window.addEventListener('storage', (e) => {
+                if (syncInProgress) return; // 同期中は処理しない
+                
+                // スライド番号の変更
+                if (e.key === 'currentSlide') {
+                    const slideNum = parseInt(e.newValue);
+                    if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides && slideNum !== currentSlide) {
+                        currentSlide = slideNum;
+                        updatePresenterView();
+                        showNotification(`スライド ${currentSlide} に同期しました`);
+                    }
+                }
+                
+                // スライドノートの変更
+                else if (e.key === 'slideNotes') {
+                    try {
+                        const notes = JSON.parse(e.newValue);
+                        if (notes) {
+                            slideNotes = notes;
+                            displayNotes(currentSlide);
+                        }
+                    } catch (error) {
+                        console.error('ノートの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 拡張同期コマンドの処理
+                else if (e.key === 'syncCommand') {
+                    try {
+                        const syncData = JSON.parse(e.newValue);
+                        handleSyncCommand(syncData);
+                    } catch (error) {
+                        console.error('同期コマンドの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 音声コマンドの処理
+                else if (e.key === 'audioCommand') {
+                    try {
+                        const audioCommand = JSON.parse(e.newValue);
+                        handleAudioCommand(audioCommand);
+                    } catch (error) {
+                        console.error('音声コマンドの解析に失敗しました:', error);
+                    }
+                }
+                
+                // 自動再生状態の同期
+                else if (e.key === 'autoplayState') {
+                    const state = e.newValue;
+                    updateAutoplayState(state);
+                }
+            });
+            
+            // ボタンイベントの設定
+            prevBtn.addEventListener('click', () => {
+                if (currentSlide > 1) {
+                    changeSlide(currentSlide - 1);
+                }
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                if (currentSlide < totalSlides) {
+                    changeSlide(currentSlide + 1);
+                }
+            });
+            
+            audioBtn.addEventListener('click', toggleAudio);
+            
+            autoplayBtn.addEventListener('click', toggleAutoplay);
+            
+            syncBtn.addEventListener('click', () => {
+                requestFullSync();
+                showNotification('同期リクエストを送信しました');
+            });
+            
+            // キーボードイベント
+            window.addEventListener('keydown', handleKeyDown);
+            
+            // 初期表示を更新
+            updatePresenterView();
+            startTimer();
+        });
+
+        // プレゼンタービューを更新
+        function updatePresenterView() {
+            // スライドカウンターの更新
+            slideCounter.textContent = `${currentSlide} / ${totalSlides}`;
+            
+            // 現在のスライドと次のスライドのプレビュー画像を更新
+            currentSlideImage.src = `images/slide_${currentSlide}.png`;
+            
+            // 次のスライドのプレビューを更新
+            if (currentSlide < totalSlides) {
+                nextSlideImage.src = `images/slide_${currentSlide + 1}.png`;
+                nextSlideImage.style.display = 'block';
+                document.getElementById('next-slide-preview').querySelector('.next-label').style.display = 'block';
+            } else {
+                // 最後のスライドの場合は次のプレビューを非表示またはその他の処理
+                nextSlideImage.style.display = 'none';
+                document.getElementById('next-slide-preview').querySelector('.next-label').style.display = 'none';
+            }
+            
+            // ノートを表示
+            displayNotes(currentSlide);
+            
+            // ナビゲーションボタンの状態を更新
+            updateButtonState();
+        }
+
+        // 拡張同期コマンドを処理
+        function handleSyncCommand(syncData) {
+            if (!syncData) return;
+            
+            // タイムスタンプが古すぎる場合は処理しない（5秒以上前のコマンド）
+            const now = Date.now();
+            if (syncData.timestamp && (now - syncData.timestamp > 5000)) {
+                return;
+            }
+            
+            // スライド番号の同期
+            if (syncData.slide !== undefined) {
+                const slideNum = parseInt(syncData.slide);
+                if (!isNaN(slideNum) && slideNum >= 1 && slideNum <= totalSlides && slideNum !== currentSlide) {
+                    currentSlide = slideNum;
+                    updatePresenterView();
+                }
+            }
+            
+            // 自動再生状態の同期
+            if (syncData.action === 'autoplay') {
+                updateAutoplayState(syncData.state);
+            }
+            
+            // 音声状態の同期
+            if (syncData.audioAction) {
+                handleAudioCommand({
+                    action: syncData.audioAction,
+                    slide: syncData.slide || currentSlide
+                });
+            }
+        }
+
+        // 音声コマンドを処理
+        function handleAudioCommand(command) {
+            if (!command) return;
+            
+            // 現在のスライドにのみ処理を適用
+            if (command.slide == currentSlide) {
+                if (command.action === 'play') {
+                    audioPlaying = true;
+                    audioBtn.textContent = '音声停止';
+                    audioBtn.classList.add('active');
+                } else if (command.action === 'pause' || command.action === 'stop') {
+                    audioPlaying = false;
+                    audioBtn.textContent = '音声再生';
+                    audioBtn.classList.remove('active');
+                }
+            }
+        }
+
+        // 自動再生状態を更新
+        function updateAutoplayState(state) {
+            if (state === 'active' && !autoplayMode) {
+                autoplayMode = true;
+                autoplayBtn.classList.add('active');
+                autoplayBtn.textContent = '自動再生停止';
+                showNotification('自動再生が開始されました');
+            } else if (state === 'inactive' && autoplayMode) {
+                autoplayMode = false;
+                autoplayBtn.classList.remove('active');
+                autoplayBtn.textContent = '自動再生';
+                showNotification('自動再生が停止されました');
+            }
+        }
+
+        // スライド変更時の処理（改善版）
+        function changeSlide(newSlide) {
+            if (newSlide >= 1 && newSlide <= totalSlides) {
+                currentSlide = newSlide;
+                updatePresenterView();
+                
+                // メイン画面と同期
+                syncWithMainWindow();
+            }
+        }
+
+        // メイン画面との同期を行う拡張関数
+        function syncWithMainWindow() {
+            try {
+                syncInProgress = true;
+                
+                // 現在のスライド情報をJSONで送信
+                const syncData = {
+                    action: 'slideChange',
+                    slide: currentSlide,
+                    timestamp: Date.now(),
+                    source: 'presenter'
+                };
+                
+                // LocalStorageを使用して同期
+                localStorage.setItem('syncCommand', JSON.stringify(syncData));
+                localStorage.setItem('currentSlide', currentSlide.toString());
+                
+                setTimeout(() => {
+                    syncInProgress = false;
+                }, 100);
+            } catch (error) {
+                console.error('メイン画面との同期に失敗しました:', error);
+                syncInProgress = false;
+            }
+        }
+
+        // 完全同期を要求
+        function requestFullSync() {
+            try {
+                syncInProgress = true;
+                
+                const syncData = {
+                    action: 'fullSync',
+                    slide: currentSlide,
+                    timestamp: Date.now(),
+                    source: 'presenter'
+                };
+                
+                localStorage.setItem('syncCommand', JSON.stringify(syncData));
+                
+                setTimeout(() => {
+                    syncInProgress = false;
+                }, 100);
+            } catch (error) {
+                console.error('同期リクエストの送信に失敗しました:', error);
+                syncInProgress = false;
+            }
+        }
+
+        // 音声の再生/停止を切り替え
+        function toggleAudio() {
+            audioPlaying = !audioPlaying;
+            
+            // UI状態を更新
+            if (audioPlaying) {
+                audioBtn.textContent = '音声停止';
+                audioBtn.classList.add('active');
+            } else {
+                audioBtn.textContent = '音声再生';
+                audioBtn.classList.remove('active');
+            }
+            
+            // 音声コマンドを送信
+            const audioCommand = {
+                action: audioPlaying ? 'play' : 'pause',
+                slide: currentSlide,
+                timestamp: Date.now()
+            };
+            
+            // AudioCommandの送信
+            localStorage.setItem('audioCommand', JSON.stringify(audioCommand));
+        }
+
+        // ボタンの状態を更新
+        function updateButtonState() {
+            prevBtn.disabled = (currentSlide <= 1);
+            nextBtn.disabled = (currentSlide >= totalSlides);
+        }
+        
+        // タイマーを開始
+        function startTimer() {
+            startTime = Date.now() - (elapsedSeconds * 1000);
+            
+            timerInterval = setInterval(() => {
+                const currentTime = Date.now();
+                elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+                
+                const minutes = Math.floor(elapsedSeconds / 60)
+                    .toString()
+                    .padStart(2, '0');
+                const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+                
+                timer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        // ノートを読み込む
+        function loadNotes() {
+            // LocalStorageからノートを読み込む
+            const savedNotes = localStorage.getItem('slideNotes');
+            
+            if (savedNotes) {
+                try {
+                    slideNotes = JSON.parse(savedNotes);
+                    // 現在のスライドのノートを表示
+                    displayNotes(currentSlide);
+                } catch (error) {
+                    console.error('ノートの解析に失敗しました:', error);
+                    notesContent.textContent = 'ノートの読み込みに失敗しました。';
+                }
+            } else {
+                notesContent.textContent = 'このスライドにはノートがありません。';
+            }
+        }
+        
+        // ノートを表示
+        function displayNotes(slideNumber) {
+            const notes = slideNotes[slideNumber];
+            
+            if (notes && notes.trim()) {
+                notesContent.textContent = notes;
+            } else {
+                notesContent.textContent = 'このスライドにはノートがありません。';
+            }
+        }
+        
+        // 通知を表示
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 自動再生の切り替え
+        function toggleAutoplay() {
+            autoplayMode = !autoplayMode;
+            
+            if (autoplayMode) {
+                autoplayBtn.classList.add('active');
+                autoplayBtn.textContent = '自動再生停止';
+                showNotification('自動再生を開始しました');
+            } else {
+                autoplayBtn.classList.remove('active');
+                autoplayBtn.textContent = '自動再生';
+                showNotification('自動再生を停止しました');
+            }
+            
+            // 自動再生コマンドを送信
+            try {
+                const autoplayCommand = {
+                    action: 'autoplay',
+                    state: autoplayMode ? 'active' : 'inactive',
+                    slide: currentSlide,
+                    timestamp: Date.now()
+                };
+                
+                localStorage.setItem('syncCommand', JSON.stringify(autoplayCommand));
+            } catch (error) {
+                console.error('自動再生コマンドの送信に失敗しました:', error);
+            }
+        }
+        
+        // キーボードイベントのハンドラ
+        function handleKeyDown(e) {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+                // 前のスライドへ
+                if (currentSlide > 1) {
+                    changeSlide(currentSlide - 1);
+                }
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+                // 次のスライドへ
+                if (currentSlide < totalSlides) {
+                    changeSlide(currentSlide + 1);
+                }
+                e.preventDefault();
+            } else if (e.key === 'Home') {
+                // 最初のスライドへ
+                changeSlide(1);
+                e.preventDefault();
+            } else if (e.key === 'End') {
+                // 最後のスライドへ
+                changeSlide(totalSlides);
+                e.preventDefault();
+            } else if (e.key === 'p' || e.key === 'P') {
+                // 音声の再生/停止
+                toggleAudio();
+                e.preventDefault();
+            } else if (e.key === 'a' || e.key === 'A') {
+                // 自動再生の切り替え
+                toggleAutoplay();
+                e.preventDefault();
+            } else if (e.key === 's' || e.key === 'S') {
+                // 同期リクエスト
+                requestFullSync();
+                showNotification('同期リクエストを送信しました');
+                e.preventDefault();
+            }
+        }
+    </script>
+</body>
+</html>
